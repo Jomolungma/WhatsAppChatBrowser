@@ -152,7 +152,7 @@ skin tone value, with a female or male indicator, with a direction,
 etc. You can end up with a sequence like
 `U+1f3c3` (Runner), `U+1f3ff` (Emoji modifier fitzpatrick type-6),
 `U+200d` (Zero-width joiner), `U+2642` (Male sign), `U+fe0f`
-(Emoji variation selector), `U+200d' (Zero-width joiner again),
+(Emoji variation selector), `U+200d` (Zero-width joiner again),
 `U+27a1` (black rightwards arrow), `U+fe0f`
 (Emoji variation selector again) to choose the emoji of a male
 runner with dark skin color running towards the right. So while
