@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wacb"
-version = "0.0.1"
+version = "0.0.2"
 description = "WhatsApp Chat Browser"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "GPL-3.0-or-later"
 license-files = [ "LICENSE.txt" ]
-dependencies = [ "tkinter", "pyperclip", "tkinterdnd2" ]
+dependencies = [ "pyperclip", "tkinterdnd2" ]
 
 [project.optional-dependencies]
 tests = ["pytest", "pytest-cov", "html5lib"]

@@ -1,5 +1,7 @@
 # WhatsApp Chat Browser
 
+![WhatsApp Chat Browser Screenshot](https://github.com/Jomolungma/WhatsAppChatBrowser/blob/main/screenshot.png)
+
 **WhatsApp Chat Browser** is a tool to render your archived WhatsApp chats.
 WhatsApp allows exporting your chats as ZIP files for archival purposes.
 **WhatsApp Chat Browser** reads these ZIP files, turns them into HTML web
