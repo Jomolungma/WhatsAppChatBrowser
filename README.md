@@ -20,7 +20,7 @@ See below for more details.
 
 On Windows, you can download and run the `wacb.exe` executable.
 
-On any platform, first install (Python)[https://python.org].
+On any platform, first install [Python](https://python.org).
 Then you can either download the Wacb Wheel, or you can install
 **WhatsApp Chat Browser** from the Python Package Index by
 running `pip install wacb` in a console. Afterwards, you can
