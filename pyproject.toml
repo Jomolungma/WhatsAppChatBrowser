@@ -1,0 +1,32 @@
+[build-system]
+requires = [ "setuptools" ]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wacb"
+version = "0.0.1"
+description = "WhatsApp Chat Browser"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "GPL-3.0-or-later"
+license-files = [ "LICENSE.txt" ]
+dependencies = [ "tkinter", "pyperclip", "tkinterdnd2" ]
+
+[project.optional-dependencies]
+tests = ["pytest", "pytest-cov", "html5lib"]
+
+[project.scripts]
+wacb-cli = "wacb:runWacbCli"
+wacb-merge = "wacb:mergeChatsCli"
+
+[project.gui-scripts]
+wacb = "wacb:runWacbUi"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+exclude = ["emojis", "test"]
+
+[tool.setuptools.package-data]
+wacb = ["wacb.css"]

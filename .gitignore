@@ -1,0 +1,11 @@
+__pycache__
+htmlcov
+dist
+build
+test
+emojis
+.pytest_cache
+.coverage
+*.egg-info
+*.spec
+*~

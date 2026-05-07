@@ -1,0 +1,94 @@
+body {
+    background-color: #dadada;
+}
+h1 {
+    width: 80%;
+    clear: both;
+    margin: auto;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    background: #000000;
+    color: #ffffff;
+    text-align: center;
+    padding: 10px;
+}
+h2 {
+    width: 40%;
+    clear: both;
+    margin: auto;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background: #000000;
+    color: #ffffff;
+    text-align: center;
+    padding: 10px;
+}
+h3 {
+    font-weight: bold;
+    text-align: center;
+}
+dt {
+    font-weight: bold;
+}
+span.senderName {
+    font-weight: bold;
+}
+div.message {
+    width: 96%;
+    margin-left: 2%;
+    margin-right: 2%;
+}
+div.systemMessage {
+    width: 80%;
+    margin-left: 10%;
+    margin-right: 10%;
+    font-style: italic;
+    background-color: #c0c0c0;
+    text-align: center;
+    clear: both;
+    padding: 10px;
+}
+div.userMessage {
+    clear: both;
+    width: 80%;
+    border-radius: 8px;
+    padding: 10px;
+    overflow: auto;
+    position: relative;
+}
+div.userMessage-Me {
+    background-color:#dcf8c6;
+    margin-left: 20%;
+}
+div.userMessage-Them {
+    background-color:#ffffff;
+    margin-right: 20%;
+}
+div.timestamp {
+    text-align: right;
+    position: absolute;
+    bottom: 2px;
+    right: 5px;
+    font-size: 70%;
+}
+div.overflow {
+    overflow: auto;
+}
+img.inlineImage {
+    max-width: 320px;
+    max-height: 200px;
+}
+img.inlineEmoji {
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+}
+img.standaloneEmoji {
+    width: 40px;
+    height: 40px;
+}
+video {
+    width: 320px;
+}
