@@ -4,8 +4,12 @@
 
 **WhatsApp Chat Browser** is a tool to render your archived WhatsApp chats.
 WhatsApp allows exporting your chats as ZIP files for archival purposes.
-**WhatsApp Chat Browser** reads these ZIP files, turns them into HTML web
-pages, and serves them to your browser for viewing or printing.
+**WhatsApp Chat Browser** reads these ZIP files, turns them into HTML web,
+and serves them to your browser for viewing or printing.
+
+Everything happens locally, on your PC only, in memory, on the fly. There
+is no extraction of the ZIP file, no separate conversion step, and nothing
+is ever sent to any cloud.
 
 # Usage
 
@@ -20,13 +24,20 @@ See below for more details.
 
 # Installation
 
-On Windows, you can download and run the `wacb.exe` executable.
+**WhatsApp Chat Browser** runs on Linux, Windows, and MacOS.
 
-On any platform, first install [Python](https://python.org).
-Then you can either download the Wacb Wheel, or you can install
-**WhatsApp Chat Browser** from the Python Package Index by
-running `pip install wacb` in a console. Afterwards, you can
-run `wacb` or `python -m wacb`.
+- On Windows, you can download and run the `wacb.exe` executable
+  from the [latest release](https://github.com/Jomolungma/WhatsAppChatBrowser/releases/latest).
+
+- On any platform (including on Windows, if you do not want to or are
+  not allowed to run foreign-built executables), first install
+  [Python](https://python.org). Make sure to include both `pip` and
+  `Tcl/Tk`. Then you can either:
+  - Download the [Wacb Wheel](https://github.com/Jomolungma/WhatsAppChatBrowser/releases/latest)
+    and run `pip install <whl file>` in a console, or
+  - Use `pip install wacb` in a console to install **WhatsApp Chat
+    Browser** from the Python Package Index.
+- Afterwards, you can run `wacb` or `python -m wacb` in a console.
 
 # Details
 
@@ -110,13 +121,19 @@ menu is disabled when the built-in Web server is running.
       [Unicode](https://www.unicode.org/emoji/charts/)
 - `HTTP`
   - `Configure` Configure the host name and port number to use for the
-    built-in Web server. Using `localhost` as the host name is highly
-    recommended. Using your actual host name might make the built-in
-    Web server visible from your local network -- use at your own risk.
-    When the port number to `0`, the built-in Web server automatically
-    chooses an available port number. When set to any other valid
-    port number (between 1024 and 65535), the built-in Web server
-    binds to the same address every time.
+    built-in Web server.
+    - `Host Name` The host name to bind to. Using `localhost` as the
+      host name is highly recommended. Using your actual host name
+      might make the built-in Web server visible from your local
+      network -- use at your own risk, if you know what you are doing.
+      See the documenation for
+      [http.server](https://docs.python.org/3/library/http.server.html)
+    - `Port Number` The port number to bind to. When `0`, the built-in
+      Web server automatically chooses an available port number at
+      random, meaning that the URL for the built-in Web server will be
+      different every time. When set to any other valid port number
+      (between 1024 and 65535), the built-in Web server binds to the
+      same address every time.
 
 # Missing Details
 
@@ -124,6 +141,8 @@ There are a lot of details that WhatsApp does _not_ include in its
 exported chat histories:
 
 - Reactions to messages (i.e., likes, hearts, etc.).
+- Timestamps when your messages were received or read by other chat
+  participants.
 - References to qoted messages. You will see the reply, but no link
   to the message that was quoted.
 - Image captions. You will see the image, but not the text that was
