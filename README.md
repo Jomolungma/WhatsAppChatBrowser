@@ -117,7 +117,7 @@ menu is disabled when the built-in Web server is running.
       plain-Ascii images within the emoji library (e.g,. an emoji for
       the `#` sign).
     - `Select Images ...` Select an emoji library.
-    - `Download Images ...` Download the _official_ emoji library from
+    - `Download Images ...` Download the emoji library from
       [Unicode](https://www.unicode.org/emoji/charts/)
 - `HTTP`
   - `Configure` Configure the host name and port number to use for the
@@ -169,14 +169,14 @@ Emojis are complicated. For example, there is an emoji `U+1f3c3`
 called "Runner". However, this emoji can then be combined with a
 skin tone value, with a female or male indicator, with a direction,
 etc. You can end up with a sequence like
-`U+1f3c3` (Runner), `U+1f3ff` (Emoji modifier fitzpatrick type-6),
+`U+1f3c3` (Runner), `U+1f3ff` ("Fitzpatrick Type 6", i.e., dark skin),
 `U+200d` (Zero-width joiner), `U+2642` (Male sign), `U+fe0f`
 (Emoji variation selector), `U+200d` (Zero-width joiner again),
 `U+27a1` (black rightwards arrow), `U+fe0f`
 (Emoji variation selector again) to choose the emoji of a male
 runner with dark skin color running towards the right. So while
 you choose a single emoji on your phone's keyboard, it ends up
-as a comples series of Unicode code points.
+as a complex series of Unicode code points.
 
 The easiest thing to do is to let your browser handle this mess.
 This is done if `Images` from the `Emojis` option is _disabled_.
@@ -195,7 +195,7 @@ box:
   `Select Images` from the `Emojis` option to use this set of images.
   The noto-emoji package contains multiple sets of the same emojis.
   Use the drop-down list to select one of them.
-- The _official_ [Unicode emojis](https://www.unicode.org/emoji/charts/),
+- The [Unicode emojis](https://www.unicode.org/emoji/charts/),
   comprised of the
   [Full Emoji List](https://www.unicode.org/emoji/charts/full-emoji-list.html) and,
   optionally, the
