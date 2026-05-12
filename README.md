@@ -118,7 +118,7 @@ menu is disabled when the built-in Web server is running.
       the `#` sign).
     - `Select Images ...` Select an emoji library.
     - `Download Images ...` Download the emoji library from
-      [Unicode](https://www.unicode.org/emoji/charts/)
+      [Unicode](https://www.unicode.org/emoji/charts/).
 - `HTTP`
   - `Configure` Configure the host name and port number to use for the
     built-in Web server.
@@ -127,7 +127,7 @@ menu is disabled when the built-in Web server is running.
       might make the built-in Web server visible from your local
       network -- use at your own risk, if you know what you are doing.
       See the documenation for
-      [http.server](https://docs.python.org/3/library/http.server.html)
+      [http.server](https://docs.python.org/3/library/http.server.html).
     - `Port Number` The port number to bind to. When `0`, the built-in
       Web server automatically chooses an available port number at
       random, meaning that the URL for the built-in Web server will be
@@ -209,7 +209,7 @@ box:
 codepoint sequences for which images are available. It will then replace
 any of these codepoint sequences that occur in your messages with the
 matching picture from the library. It will then ignore any _modifiers_
-or combining marks at the tail of the codepoint sequence. E.g., if the
+or _combining marks_ at the tail of the codepoint sequence. E.g., if the
 emoji library includes an image for `U+1f3c3` (Runner) _only_, then
 **WhatsApp Chat Browser** will use the Runner image and drop the
 subsequent modifiers, such as the skin tone and the male/female sign.
