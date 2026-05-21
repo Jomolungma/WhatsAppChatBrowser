@@ -36,8 +36,8 @@ def mergeChatsCli():
 def run(ui=None):
     locale.setlocale(locale.LC_ALL, '')
     parser = argparse.ArgumentParser(prog="WhatsApp Chat Browser")
-    parser.add_argument('--exportToDir', default=None, help="Export HTML to this directory.")
-    parser.add_argument('--exportToZip', default=None, help="Export HTML to this ZIP file.")
+    parser.add_argument('--exportAsChat', default=None, help="Export Chat to this ZIP file.")
+    parser.add_argument('--exportAsHtml', default=None, help="Export HTML to this ZIP file.")
     parser.add_argument('-n', '--noConfigFile', default=False, action="store_true", help="Do not load default configuration file.")
     parser.add_argument('-c', '--configFile', default=None, help="Use this configuration file.")
     parser.add_argument('-v', '--verbose', default=0, action="count", help="Verbosity level.")
@@ -56,10 +56,10 @@ def run(ui=None):
     for chat in args.chats:
         chatFiles.extend(glob.glob(chat))
 
-    if args.exportToDir:
-        wacbapp.runExportToDir(args.exportToDir, chatFiles, title, useConfigFile, configFile, verbosity)
-    elif args.exportToZip:
-        wacbapp.runExportToZip(args.exportToZip, chatFiles, title, useConfigFile, configFile, verbosity)
+    if args.exportAsChat:
+        wacbchat.mergeChats(args.exportAsChat, chatFiles, verbosity)
+    elif args.exportAsHtml:
+        wacbapp.exportAsHtml(args.exportAsHtml, chatFiles, title, useConfigFile, configFile, verbosity)
     elif useUi:
         wacbui.run(chatFiles, title, useConfigFile, configFile, verbosity)
     else:

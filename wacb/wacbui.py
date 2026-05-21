@@ -66,11 +66,14 @@ class DownloadStatisticsCollector:
             self.successfulDownloads = 0
             self.failedDownloads = 0
             self.bytesServed = 0
-        
+
     def start(self, fileName):
         with self.lock:
             self.activeDownloads += 1
         return self
+
+    def oops(self, message):
+        pass
 
     def update(self, bytesServed):
         with self.lock:
@@ -821,7 +824,7 @@ class WhatsAppChatBrowser(tkinter.Frame):
 
     def browseForFilesToOpen(self):
         title = "Select chat(s) to open."
-        fileTypeSuggestion = [["ZIP Files", "*.zip"], ["TXT Files", "*.txt"]]
+        fileTypeSuggestion = [["ZIP Files", "*.zip"], ["JSON Files", "*.json"], ["TXT Files", "*.txt"]]
         return tkinter.filedialog.askopenfilenames(title=title, filetypes=fileTypeSuggestion)
 
     def updateWidgetsAfterOpenOrMerge(self):

@@ -19,6 +19,7 @@
 
 import io
 import re
+import json
 import locale
 import zipfile
 import datetime
@@ -399,7 +400,7 @@ class Chat:
     #
 
     def findByTimestamp(self, timestamp):
-        # This allows the function to accept datetime and time for timestamps.
+        # This allows the function to accept timestamps of type datetime or date.
         dt = datetime.datetime.combine(timestamp, datetime.time())
         # Binary search, since messages are sorted by time.
         rangeMin = 0
@@ -410,9 +411,7 @@ class Chat:
                 rangeMin = middleOfRange + 1
             else:
                 rangeMax = middleOfRange
-        if rangeMin < len(self.messages):
-            return rangeMin
-        return None
+        return rangeMin
 
     #
     # To iterate over messages.
@@ -659,7 +658,15 @@ class Chat:
 #
 
 class ZippedChat(Chat):
-    def __init__(self, fileName):
+    def findPaths(fileName):
+        paths = []
+        with zipfile.ZipFile(fileName) as zipFile:
+            for name in zipFile.namelist():
+                if name.endswith("_chat.txt"):
+                    paths.append(name[:-9])
+        return paths
+
+    def __init__(self, fileName, pathInZip=None):
         super().__init__()
         if isinstance(fileName, str) or isinstance(fileName, Path):
             self.fileName = Path(fileName)
@@ -668,6 +675,7 @@ class ZippedChat(Chat):
         self.zipFile = None
         self.zipFile = zipfile.ZipFile(fileName)
         self.attachments = self.zipFile.namelist()
+        self.pathInZip = pathInZip if pathInZip else self.findPath()
         self.loadMessages()
 
     def __del__(self):
@@ -675,23 +683,30 @@ class ZippedChat(Chat):
             self.zipFile.close()
             self.zipFile = None
 
-    def canonicalName(name):
-        return name if ((len(name) < 2) or (name[0] != "/")) else name[1:]
+    def findPath(self):
+        for name in self.zipFile.namelist():
+            if name.endswith("_chat.txt"):
+                return name[:-9]
+        raise Exception("ZIP file \"" + str(self.fileName) + "\" has no file \"_chat.txt\"")
+
+    def canonicalName(self, name):
+        fileName = name if ((len(name) < 2) or (name[0] != "/")) else name[1:]
+        return self.pathInZip + fileName
 
     def hasFile(self, name):
-        return ZippedChat.canonicalName(name) in self.attachments
+        return self.canonicalName(name) in self.attachments
 
     def openFile(self, name):
-        return self.zipFile.open(ZippedChat.canonicalName(name))
+        return self.zipFile.open(self.canonicalName(name))
 
     #
     # Copying data in slices seems to deadlock sometimes. A workaround
-    # is to read the file into memory at once, and then writing the data
+    # is to read the file into memory at once, and then to write the data
     # to the output file in slices.
     #
 
     def copyFile(self, name, outputFile, updatecb=None):
-        data = self.zipFile.read(ZippedChat.canonicalName(name))
+        data = self.zipFile.read(self.canonicalName(name))
         pos = 0
         sliceSize = 16384
         while pos < len(data):
@@ -702,10 +717,10 @@ class ZippedChat(Chat):
                 updatecb.update(len(slice))
 
     def getFileSize(self, name):
-        return self.zipFile.getinfo(ZippedChat.canonicalName(name)).file_size
+        return self.zipFile.getinfo(self.canonicalName(name)).file_size
 
     def loadMessages(self):
-        with self.zipFile.open("_chat.txt") as file:
+        with self.zipFile.open(self.canonicalName("_chat.txt")) as file:
             self.loadMessagesFromStream(file)
 
 #
@@ -756,6 +771,117 @@ class TextChat(Chat):
     def loadMessages(self, fileName):
         with open(fileName, "rb") as file:
             self.loadMessagesFromStream(file)
+
+#
+# Load a chat from a JSON file as exported by WhatsApp-Chat-Exporter.
+#
+
+class JsonChat(Chat):
+    def __init__(self, fileName, chatId=None):
+        super().__init__()
+        if isinstance(fileName, str) or isinstance(fileName, Path):
+            self.fileName = Path(fileName)
+            self.dir = self.fileName.parent
+            self.attachments = dict()
+            self.loadJsonMessagesFromFile(fileName, chatId)
+        elif isinstance(fileName, io.TextIOBase):
+            self.fileName = None
+            self.dir = None
+            self.attachments = dict()
+            self.loadJsonMessagesFromStream(fileName, chatId)
+        elif not fileName:
+            self.fileName = None
+            self.dir = None
+            self.attachments = dict()
+        else:
+            raise TypeError
+
+    def canonicalName(name):
+        return name if ((len(name) < 2) or (name[0] != "/")) else name[1:]
+
+    def hasFile(self, name):
+        return JsonChat.canonicalName(name) in self.attachments
+
+    def openFile(self, name):
+        return open(self.attachments[JsonChat.canonicalName(name)], "rb")
+
+    def copyFile(self, name, outputFile, updatecb=None):
+        pos = 0
+        sliceSize = 16384
+        with self.openFile(name) as inputFile:
+            while True:
+                slice = inputFile.read(sliceSize)
+                if len(slice) == 0:
+                    break
+                outputFile.write(slice)
+                if updatecb:
+                    updatecb.update(len(slice))
+
+    def getFileSize(self, name):
+        return self.attachments[JsonChat.canonicalName(name)].stat().st_size
+
+    def loadJsonMessagesFromFile(self, fileName, chatId=None):
+        with open(fileName, "rb") as file:
+            self.loadJsonMessagesFromStream(file, chatId)
+
+    def loadJsonMessagesFromStream(self, file, chatId=None):
+        jsonData = json.load(file)
+        self.loadJsonMessagesFromJson(jsonData)
+
+    def loadJsonMessagesFromJson(self, jsonData, chatId=None):
+        if not chatId:
+            chatId = list(jsonData.keys())[0]
+        chat = jsonData[chatId]
+        messages = chat["messages"]
+        self.groupName = chat["name"]
+        self.mediaBase = self.dir / chat["media_base"] if chat["media_base"] else None
+        for messageId in messages.keys():
+            self.parseAndAddJsonMessage(messages[messageId])
+
+    def parseAndAddJsonMessage(self, jsonMessage):
+        timestamp = datetime.datetime.fromtimestamp(jsonMessage["timestamp"])
+
+        if jsonMessage["from_me"]:
+            userName = "Me"
+        elif jsonMessage["meta"]:
+            userName = None
+        elif jsonMessage["sender"]:
+            userName = jsonMessage["sender"]
+        else:
+            userName = self.groupName
+
+        if jsonMessage["media"] and self.isAttachmentAvailable(jsonMessage["data"]):
+            text = jsonMessage["caption"]
+            attachment = self.importAttachment(jsonMessage["data"])
+        elif jsonMessage["data"]:
+            text = jsonMessage["data"].replace("<br>", "\n")
+            attachment = None
+        else:
+            # No text, no media - ignore.
+            return
+
+        self.addMessage((timestamp, userName, text, attachment))
+
+    def isAttachmentAvailable(self, attachmentName):
+        if not self.mediaBase:
+            return False
+        attachmentPath = Path(attachmentName)
+        fullPath = self.mediaBase / attachmentPath
+        return fullPath.is_file()
+        
+    def importAttachment(self, attachmentName):
+        attachmentPath = Path(attachmentName)
+        fullPath = self.mediaBase / attachmentPath
+        nn = "{0:08d}-{1}".format(len(self.messages), attachmentPath.name)
+        self.attachments[nn] = fullPath
+        return nn
+
+#
+# Container for an empty chat.
+#
+
+class NullChat(Chat):
+    pass
 
 #
 # Filter messages by time.
@@ -886,23 +1012,37 @@ class MergedChat(Chat):
 def openChat(files):
     if isinstance(files, list) or isinstance(files, tuple):
         if len(files) == 0:
-            raise TypeError
+            return NullChat()
         elif len(files) == 1:
             return openChat(files[0])
         else:
             return MergedChat([openChat(file) for file in files])
-    elif isinstance(files, io.TextIOBase):
-        return TextChat(files)
-    elif isinstance(files, io.IOBase):
-        return ZippedChat(files)
-    elif isinstance(files, str) or isinstance(files, Path):
-        file = Path(files)
-        if file.suffix == ".zip":
-            return ZippedChat(file)
-        elif file.suffix == ".txt":
+
+    file = files
+    if isinstance(file, io.TextIOBase):
+        file.seek(0)
+        first8Chars = file.read(8)
+        file.seek(0)
+        if len(first8Chars) > 0 and first8Chars[0] == '{':
+            return JsonChat(file)
+        else:
             return TextChat(file)
-        elif file.is_dir():
-            textFile = file / "_chat.txt"
+    elif zipfile.is_zipfile(file):
+        paths = ZippedChat.findPaths(file)
+        if len(paths) <= 1:
+            return ZippedChat(file)
+        else:
+            return MergedChat([ZippedChat(file, path) for path in paths])
+    elif isinstance(file, str) or isinstance(file, Path):
+        path = Path(file)
+        if path.suffix == ".zip":
+            return ZippedChat(path)
+        elif path.suffix == ".txt":
+            return TextChat(path)
+        elif path.suffix == ".json":
+            return JsonChat(path)
+        elif path.is_dir():
+            textFile = path / "_chat.txt"
             if textFile.exists():
                 return TextChat(textFile)
     raise TypeError

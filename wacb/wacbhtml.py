@@ -206,6 +206,7 @@ class WacbHtmlFormatter:
     # - Apply _italics_ and *bold* formatting.
     # - Replace unicode emojis with inline images, if desired.
     # - Replace the reserved '&', '<', '>' characters with HTML-safe sequences.
+    # - Replace newlines with <br>.
     #
 
     def formatMessageText(self, text):
@@ -224,7 +225,7 @@ class WacbHtmlFormatter:
             parsePos = fmtMatch.end()
             fmtMatch = WacbHtmlFormatter.regexForFmt.search(text, parsePos)
         formattedText += self.emojify(text[parsePos:])
-        return formattedText
+        return formattedText.replace("\n", "<br>")
 
     def formatRegularUserMessage(self, message):
         return self.formatMessageText(message.text)

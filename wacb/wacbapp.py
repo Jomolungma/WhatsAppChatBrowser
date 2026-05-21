@@ -38,6 +38,9 @@ class QuietDownloadStatistics:
     def start(self, fileName):
         return self
 
+    def oops(self, message):
+        pass
+
     def update(self, bytesServed):
         pass
 
@@ -59,6 +62,9 @@ class ConsoleDownloadStatistics:
     def start(self, fileName):
         print("Starting download of \"" + fileName + "\".")
         return ConsoleDownloadStatisticsHelper(fileName)
+
+    def oops(self, message):
+        print(message)
 
 #
 # This class is the glue between the message container, which stores messages,
@@ -82,6 +88,7 @@ class HttpHtmlGlue:
             return 301, {"Location": "index.html"}
 
         if not self.hasFile(path):
+            self.statisticsCollector.oops("Requested file \"" + path + "\" is not available.")
             return 404, None
 
         contentType = self.getContentTypeFromFileName(path)
@@ -313,20 +320,12 @@ def run(chatFiles=None, title=None, useConfigFile=True, configFile=None, verbosi
     app.stop()
     app.close()
 
-def runExportToDir(exportDir=None, chatFiles=None, title=None, useConfigFile=True, configFile=None, verbosity=0):
+def exportAsHtml(zipFile=None, chatFiles=None, title=None, useConfigFile=True, configFile=None, verbosity=0):
     app = App(useConfigFile, configFile)
     app.open(chatFiles)
     if title:
         app.title = title
-    app.exportToDir(exportDir)
-    app.close()
-
-def runExportToZip(exportZip=None, chatFiles=None, title=None, useConfigFile=True, configFile=None, verbosity=0):
-    app = App(useConfigFile, configFile)
-    app.open(chatFiles)
-    if title:
-        app.title = title
-    app.exportToZip(exportZip)
+    app.exportToZip(zipFile)
     app.close()
 
 if __name__ == "__main__":
