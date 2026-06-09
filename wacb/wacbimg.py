@@ -15,35 +15,47 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+"""
+Helper functions to read image dimensions from a file.
+
+The getImageTypeFromFile() and getImageSize() functions take a binary stream
+parameter. The stream must be seekable. The stream is left at an undefined
+position upon return.
+"""
+
 import struct
 
-#
-# Helper function to read image dimensions from a file.
-#
-# The getImageTypeFromFile() and getImageSize() functions take a binary stream
-# parameter. The stream must be seekable. The stream is left at an undefined
-# position upon return.
-#
-
 class ImageHelper:
+    """
+    Helper functions to read image dimensions from a file.
+
+    The getImageTypeFromFile() and getImageSize() functions take a binary stream
+    parameter. The stream must be seekable. The stream is left at an undefined
+    position upon return.
+    """
+
     pngSignature = bytearray([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
     pngIhdrChunkFormat = struct.Struct(">I4sII5x4x")
 
     # io.RawIOBase.read() may read fewer bytes when at EOF. When fewer bytes are
     # read than expected, struct.unpack() fails. To guard against broken or truncated
     # files, this helper always returns the exact number of bytes requested.
+    @staticmethod
     def read(file, count):
         data = file.read(count)
         while len(data) < count:
             data += b'\0'
         return data
 
+    @staticmethod
     def isPngFile(first8Bytes):
         return first8Bytes == ImageHelper.pngSignature
 
+    @staticmethod
     def pngImageSize(file, first8Bytes):
         firstChunk = ImageHelper.read(file, 25)
         if len(firstChunk) == 25:
+            # pylint: disable=unused-variable
             chunkLength, chunkType, imageWidth, imageHeight = ImageHelper.pngIhdrChunkFormat.unpack(firstChunk)
             if chunkType == b'IHDR':
                 return imageWidth, imageHeight
@@ -54,9 +66,11 @@ class ImageHelper:
     jpegExtractSegmentHeader = struct.Struct(">2sH")
     jpegExtractDataFromSegment = struct.Struct(">xHH")
 
+    @staticmethod
     def isJpegFile(first8Bytes):
         return first8Bytes[0:4] == ImageHelper.jpegSoiAndApp0Marker
 
+    @staticmethod
     def jpegImageSize(file, first8Bytes):
         app0Length = ImageHelper.jpegExtractSegmentLengthFromFirst8Bytes.unpack(first8Bytes)[0]
         file.seek(app0Length - 4, 1)
@@ -81,9 +95,11 @@ class ImageHelper:
     webpExtractVp8lChunkData = struct.Struct("<I")
     webpExtractVp8ChunkData = struct.Struct("<hx3shh")
 
+    @staticmethod
     def isWebpFile(first8Bytes):
         return first8Bytes[0:4] == ImageHelper.webpFileHeader
 
+    @staticmethod
     def webpImageSize(file, first8Bytes):
         firstChunkHeader = ImageHelper.read(file, 12)
         webpMarker, chunkType, chunkLength = ImageHelper.webpExtractFirstChunkHeader.unpack(firstChunkHeader)
@@ -96,7 +112,7 @@ class ImageHelper:
             return canvasWidthMinusOne+1, canvasHeightMinusOne+1
         elif chunkType == b'VP8L' and chunkLength > 4:
             firstChunkData = ImageHelper.read(file, 5)
-            widthAndHeight = ImageHelper.webpExtractVp8lChunkData(firstChunkData[1:5])
+            widthAndHeight = ImageHelper.webpExtractVp8lChunkData.unpack(firstChunkData[1:5])
             imageWidth = (widthAndHeight & 0x3fff) + 1
             imageHeight = ((widthAndHeight >> 14) & 0x3fff) + 1
             return imageWidth, imageHeight
@@ -109,6 +125,7 @@ class ImageHelper:
                 return imageWidth, imageHeight
         return None, None
 
+    @staticmethod
     def getImageTypeFromFirst8Bytes(first8Bytes):
         if ImageHelper.isPngFile(first8Bytes):
             return "image/png"
@@ -118,11 +135,13 @@ class ImageHelper:
             return "image/webp"
         return None
 
+    @staticmethod
     def getImageTypeFromFile(file):
         file.seek(0)
         first8Bytes = ImageHelper.read(file, 8)
         return ImageHelper.getImageTypeFromFirst8Bytes(first8Bytes)
 
+    @staticmethod
     def getImageSizeFromFile(file):
         file.seek(0)
         first8Bytes = ImageHelper.read(file, 8)
@@ -134,6 +153,7 @@ class ImageHelper:
             return ImageHelper.webpImageSize(file, first8Bytes)
         return None, None
 
+    @staticmethod
     def getImageTypeAndSizeFromFile(file):
         file.seek(0)
         first8Bytes = ImageHelper.read(file, 8)
@@ -148,14 +168,17 @@ class ImageHelper:
             imageWidth, imageHeight = None, None
         return imageType, imageWidth, imageHeight
 
+    @staticmethod
     def getImageTypeFromFileName(name):
         with open(name, "rb") as file:
             return ImageHelper.getImageTypeFromFile(file)
 
+    @staticmethod
     def getImageSizeFromFileName(name):
         with open(name, "rb") as file:
             return ImageHelper.getImageSizeFromFile(file)
 
+    @staticmethod
     def getImageTypeAndSizeFromFileName(name):
         with open(name, "rb") as file:
             return ImageHelper.getImageTypeAndSizeFromFile(file)

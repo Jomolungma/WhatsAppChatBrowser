@@ -15,10 +15,18 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+"""
+Handle Whats App Chat Browser configuration files.
+"""
+
 import json
 import pathlib
 
 class DictWrapper:
+    """
+    Helper to get and set configuration values in a section.
+    """
+
     def __init__(self, config, groupName):
         self.config = config
         self.groupName = groupName
@@ -38,6 +46,10 @@ class DictWrapper:
         return self.config.config[self.groupName].items()
 
 class WacbConfig:
+    """
+    Whats App Chat Browser configuration.
+    """
+
     configFileLocations = [
         "~/.wacb",
     ]
@@ -98,7 +110,7 @@ class WacbConfig:
         if not self.useConfigFile:
             return
         if self.configFile:
-            self.loadConfigFromFile(path)
+            self.loadConfigFromFile(self.configFile)
             return
         for fileName in WacbConfig.configFileLocations:
             try:

@@ -17,6 +17,10 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+"""
+Emoji handling.
+"""
+
 import re
 import time
 import base64
@@ -68,11 +72,11 @@ unicodeEmojiLists = [
     "https://www.unicode.org/emoji/charts/full-emoji-modifiers.html"
 ]
 
-#
-# Helper for navigating the sub-tree.
-#
-
 class SubTreeHelper:
+    """
+    Helper for navigating a sub-tree of a database.
+    """
+
     def __init__(self, dataBase, subTree, path):
         self.dataBase = dataBase
         self.subTree = subTree
@@ -151,11 +155,14 @@ class SubTreeHelper:
     def length(self):
         return len(self.path)
 
-#
-# Database of emojis.
-#
-
 class Database:
+    """
+    Database of emojis.
+    "emojis" is a tree where each node is a code point.
+    Leafs have "None" in its dict of subtrees.
+    Leafs can have further subtrees.
+    """
+
     reForCodePoint = re.compile("_u?([0-9a-fA-F]+)")
 
     def __init__(self):
@@ -222,6 +229,7 @@ class Database:
 
     def possibleContinuations(self):
         pcs = list()
+        # pylint: disable=consider-iterating-dictionary
         for cp in self.emojis.keys():
             if cp:
                 pcs.append(cp)
@@ -243,13 +251,13 @@ class Database:
     def getType(self):
         raise Exception("Must be implemented by a derived class.")
 
-    def getName(self, data):
+    def getName(self, path, emojiData):
         raise Exception("Must be implemented by a derived class.")
 
-    def getImage(self, data):
+    def getImage(self, path, emojiData):
         raise Exception("Must be implemented by a derived class.")
 
-    def getBase64(self, data):
+    def getBase64(self, path, emojiData):
         raise Exception("Must be implemented by a derived class.")
 
     def addEmoji(self, codePoints, data):
@@ -265,21 +273,22 @@ class Database:
         subTree = self[codePoints]
         return None in subTree
 
-#
-# Load a set of emojis from a Zip file.
-#
-
 class ZippedDatabase(Database):
+    """
+    Load a set of emojis from a Zip file.
+    """
+
     def __init__(self, fileName, subPath=None):
         super().__init__()
         self.zipFile = None
+        # pylint: disable=consider-using-with
         self.zipFile = zipfile.ZipFile(fileName)
         self.fileType = None
         self.subPaths = set()
         self.scanEmojis(subPath)
 
     def __del__(self):
-        if self.zipFile != None:
+        if self.zipFile is not None:
             self.zipFile.close()
             self.zipFile = None
 
@@ -327,11 +336,11 @@ class ZippedDatabase(Database):
         emojiData["base64Data"] = base64Data
         return base64Data
 
-#
-# Load a set of emojis from a HTML file.
-#
-
 class HtmlDatabase(Database):
+    """
+    Load a set of emojis from a HTML file.
+    """
+
     reForCodePoints = re.compile("<img alt='([0-9A-Fa-fx&#;]+)'")
     reForImageData = re.compile("src=.data:image/png;base64,([A-Za-z0-9/+=]+)")
     reForCodePoint = re.compile("&#x([0-9a-fA-F]+);")
@@ -377,15 +386,20 @@ class HtmlDatabase(Database):
         return emojiData["base64Data"]
 
 class ZipExporter:
+    """
+    Export an emoji database to a Zip file.
+    """
+
     def __init__(self, fileName):
         self.zipFile = None
+        # pylint: disable=consider-using-with
         self.zipFile = zipfile.ZipFile(fileName, "w")
 
     def __del__(self):
         self.close()
 
     def close(self):
-        if self.zipFile != None:
+        if self.zipFile is not None:
             self.zipFile.close()
             self.zipFile = None
 
@@ -408,6 +422,10 @@ def exportToZip(database, zipFileName):
     ze.close()
 
 class Downloader:
+    """
+    Download HTML emoji databases.
+    """
+
     def __init__(self, verbose=False):
         self.verbose = verbose
         self.html = list()
@@ -484,6 +502,10 @@ class Downloader:
                 print("Oops, no emojis found.")
 
 class EmojifyMatch:
+    """
+    Result when the emojifier has found an emoji that could be replaced with an image.
+    """
+
     # pos: The position where an emoji is found.
     # end: The position beyond the emoji.
     # emoji: The emoji found in the database.
@@ -493,6 +515,10 @@ class EmojifyMatch:
         self.emoji = emoji
 
 class Emojify:
+    """
+    Emojifier. Serches for emojis in text according to an emoji database.
+    """
+
     pathForUrl = "emoji/"
 
     def __init__(self, dataBase=None):
@@ -506,6 +532,7 @@ class Emojify:
         self.ignoreAscii = configData["ignoreAscii"] if "ignoreAscii" in configData else False
         self.inline = configData["inline"] if "inline" in configData else False
 
+    @staticmethod
     def canonicalName(name):
         if name[0] == '/' and name[1:7] == Emojify.pathForUrl:
             return name[7:]
@@ -531,26 +558,31 @@ class Emojify:
         if updatecb:
             updatecb.update(len(emoji.image))
 
+    @staticmethod
     def isSkinToneModifier(codePoint):
         # Emoji modifier fitzpatrick types 1..6.
         return (codePoint >= 0x1f3fb) and (codePoint <= 0x1f3ff)
 
+    @staticmethod
     def isVariationSelector(codePoint):
         # Variation selector 1..16.
         return (codePoint >= 0xfe00) and (codePoint <= 0xfe0f)
 
+    @staticmethod
     def isCombiningDiacriticalMark(codePoint):
         # Combining Diacritical Marks or Combining Diacritical Marks for Symbols
         isCombiningDiacriticalMark = (codePoint >= 0x300) and (codePoint <= 0x36f)
         isCombiningDiacriticalMarkForSymbol = (codePoint >= 0x20e0) and (codePoint <= 0x20ff)
         return isCombiningDiacriticalMark or isCombiningDiacriticalMarkForSymbol
 
+    @staticmethod
     def modifiesPreviousCodePoint(codePoint):
         # Whether this code point modifies the preceding one.
         return (Emojify.isSkinToneModifier(codePoint) or
                 Emojify.isVariationSelector(codePoint) or
                 Emojify.isCombiningDiacriticalMark(codePoint))
-        
+
+    @staticmethod
     def isZWJ(codePoint):
         # Zero-width joiner.
         return codePoint == 0x200d
@@ -607,7 +639,8 @@ def makeEmojifier(configData):
     emojifier.configure(configData)
     return emojifier
 
-if __name__ == "__main__":
+def main():
+    # pylint: disable=import-outside-toplevel
     import argparse
 
     defaultZip = "unicode-emojis.zip"
@@ -629,3 +662,6 @@ if __name__ == "__main__":
         downloader.exportRawHtml(args.outputFile)
     else:
         downloader.exportToZip(args.outputFile)
+
+if __name__ == "__main__":
+    main()

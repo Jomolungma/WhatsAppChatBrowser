@@ -15,15 +15,19 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-#
-# Helper for accessing information in a CSS file.
-#
+"""
+Helpers for accessing information in a CSS file.
+"""
 
 import sys
 import pkgutil
 from os import path
 
 class ElementHelper:
+    """
+    Helper for accessing properties in a CSS element.
+    """
+
     def __init__(self, parent, elementPos, closingBracePos):
         self.parent = parent
         self.elementPos = elementPos
@@ -31,6 +35,7 @@ class ElementHelper:
 
     def __contains__(self, parameter):
         try:
+            # pylint: disable=unused-variable
             item = self[parameter]
         except:
             return False
@@ -58,18 +63,22 @@ class ElementHelper:
         lengthDiff = len(svalue) - (semicolonPos - colonPos) + 1
         self.parent.css = self.parent.css[:colonPos] + ": " + svalue + self.parent.css[semicolonPos:]
         self.closingBracePos += lengthDiff
-        return None
 
 class Document:
+    """
+    Represents a CSS document.
+    """
+
     def __init__(self):
         self.css = None
-    
+
     @property
     def data(self):
         return self.css
 
     def __contains__(self, element):
         try:
+            # pylint: disable=unused-variable
             item = self[element]
         except:
             return False
@@ -85,12 +94,22 @@ class Document:
         return ElementHelper(self, elementPos, closingBracePos)
 
 class File(Document):
+    """
+    Load a CSS document from a file.
+    """
+
     def __init__(self, fileName):
-        with open(fileName) as cssFile:
+        super().__init__()
+        with open(fileName, encoding="utf-8") as cssFile:
             self.css = cssFile.read()
 
 class Builtin(Document):
+    """
+    Load the built-in CSS document.
+    """
+
     def __init__(self):
+        super().__init__()
         data = pkgutil.get_data("wacb", "wacb.css")
         self.css = data.decode()
 
@@ -99,6 +118,6 @@ def makeBuiltinCss():
         return Builtin()
     else:
         return File(path.abspath(path.join(path.dirname(__file__), "wacb.css")))
-    
+
 def makeCssProvider(fileName, useBuiltin):
     return makeBuiltinCss() if useBuiltin else File(fileName)

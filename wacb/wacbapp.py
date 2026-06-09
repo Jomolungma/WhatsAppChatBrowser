@@ -17,6 +17,11 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+"""
+The classes here integrate the handling of chat archives, HTML formatting
+and HTTP serving -- everything except the user interface.
+"""
+
 import zipfile
 import urllib.parse
 from pathlib import Path
@@ -35,6 +40,10 @@ else:
     import wacbconfig
 
 class QuietDownloadStatistics:
+    """
+    Statistics collector that does not do anything, i.e., it is quiet.
+    """
+
     def start(self, fileName):
         return self
 
@@ -48,6 +57,10 @@ class QuietDownloadStatistics:
         pass
 
 class ConsoleDownloadStatisticsHelper:
+    """
+    Statistics collector that prints information to the console.
+    """
+
     def __init__(self, fileName):
         self.fileName = fileName
 
@@ -59,6 +72,10 @@ class ConsoleDownloadStatisticsHelper:
         print("Download of \"" + self.fileName + "\" " + successOrFailure + ".")
 
 class ConsoleDownloadStatistics:
+    """
+    Statistics collector that prints information to the console.
+    """
+
     def start(self, fileName):
         print("Starting download of \"" + fileName + "\".")
         return ConsoleDownloadStatisticsHelper(fileName)
@@ -66,13 +83,13 @@ class ConsoleDownloadStatistics:
     def oops(self, message):
         print(message)
 
-#
-# This class is the glue between the message container, which stores messages,
-# the HTML formatter, which is responsible for the conversion of messages to
-# HTML, and the HTTP request handler, wich serves requests from the HTTP server.
-#
-
 class HttpHtmlGlue:
+    """
+    This class is the glue between the message container, which stores messages,
+    the HTML formatter, which is responsible for the conversion of messages to
+    HTML, and the HTTP request handler, wich serves requests from the HTTP server.
+    """
+
     def __init__(self, messageContainer, htmlFormatter, emojifier=None):
         self.messageContainer = messageContainer
         self.htmlFormatter = htmlFormatter
@@ -147,11 +164,11 @@ class HttpHtmlGlue:
             return HttpHtmlGlue.extToContentTypeMap[ext]
         return "application/octet-stream"
 
-#
-# This class does everything but the UI.
-#
-
 class App:
+    """
+    This class does everything but the UI, i.e., it is the model in MVC terms.
+    """
+
     def __init__(self, useConfigFile=True, configFile=None):
         self.running = False
         self.messageContainer = None
@@ -160,6 +177,7 @@ class App:
         self.emojifier = None
         self.httpHtmlGlue = None
         self.httpServerManager = None
+        self.httpBackend = None
         self.fileName = None
         self.statisticsCollector = None
         self.title = None
@@ -191,7 +209,7 @@ class App:
         if self.emojifier:
             self.htmlFormatter.configureEmojifier(self.emojifier)
         return self.htmlFormatter
-        
+
     def setStatisticsCollector(self, collector):
         self.statisticsCollector = collector
 
@@ -247,7 +265,7 @@ class App:
         self.httpServerManager = wacbhttp.WacbHttpServerManager(self.httpBackend)
         self.httpServerManager.configure(self.config["http"])
         self.httpServerManager.start()
-        
+
     def start(self):
         if not self.messageContainer:
             return
@@ -300,6 +318,7 @@ class App:
 #
 
 def run(chatFiles=None, title=None, useConfigFile=True, configFile=None, verbosity=0):
+    # pylint: disable=import-outside-toplevel
     import time
     app = App(useConfigFile, configFile)
     if verbosity > 0:

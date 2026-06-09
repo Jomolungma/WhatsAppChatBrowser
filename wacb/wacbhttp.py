@@ -15,17 +15,21 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-import os
-import sys
+"""
+Classes and functions related to the HTTP server.
+"""
+
 import threading
 import http.server
-import shutil
-
-#
-# HTTP request handler. Delegates to a callback class.
-#
 
 class WacbHttpRequestHandler(http.server.BaseHTTPRequestHandler):
+    """
+    HTTP request handler. Delegates to a callback class.
+    """
+
+    # Pylint complains "number of parameters was 3 in base class and is
+    # now 3 in overriding method." Huh?
+    # pylint: disable=arguments-differ
     def log_message(self, fmt, *args):
         pass
 
@@ -39,11 +43,11 @@ class WacbHttpRequestHandler(http.server.BaseHTTPRequestHandler):
         if httpCode == 200:
             self.server.callback.getFile(self.path, self.wfile)
 
-#
-# Wrapper for the standard Python HTTP server.
-#
-
 class WacbHttpServer(http.server.ThreadingHTTPServer):
+    """
+    Wrapper for the standard Python HTTP server.
+    """
+
     def __init__(self, manager, address, callback):
         self.manager = manager
         self.callback = callback
@@ -52,11 +56,11 @@ class WacbHttpServer(http.server.ThreadingHTTPServer):
     def __del__(self):
         self.manager.stop()
 
-#
-# Wrapper to start the HTTP server in a separate thread.
-#
-
 class WacbHttpServerManager():
+    """
+    Wrapper to start the HTTP server in a separate thread.
+    """
+
     def __init__(self, callback):
         self.thread = None
         self.server = None
@@ -77,10 +81,10 @@ class WacbHttpServerManager():
         self.thread.start()
 
     def stop(self):
-        if self.server != None:
+        if self.server is not None:
             self.server.shutdown()
             self.server = None
-        if self.thread != None:
+        if self.thread is not None:
             self.thread.join()
             self.thread = None
 

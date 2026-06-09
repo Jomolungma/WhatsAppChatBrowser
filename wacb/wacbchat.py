@@ -17,6 +17,10 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+"""
+Classes and functions for loading and processing chats.
+"""
+
 import io
 import re
 import json
@@ -25,13 +29,13 @@ import zipfile
 import datetime
 from pathlib import Path
 
-#
-# Represents a chat user. User names may contain unprintable characters,
-# therefore this class also considers the user's "printable" name and allows
-# comparing raw and printable names.
-#
-
 class User:
+    """
+    Represents a chat user. User names may contain unprintable characters,
+    therefore this class also considers the user's "printable" name and allows
+    comparing raw and printable names.
+    """
+
     def __init__(self, name):
         self.name = name
 
@@ -64,23 +68,18 @@ class User:
             pn = pn.replace("  ", " ")
         return pn
 
-#
-# Represents a single message, whether a user message or a system message.
-#
-# Each message has a timestamp.
-# User messages have a user.
-# For system messages, the user is None.
-# Messages have text, an attachment, or both.
-#
-
 class Message:
-    def __init__(self, container, index):
-        self.container = container
-        self.index = index
+    """
+    Represents a single message, whether a user message or a system message.
 
-    @property
-    def data(self):
-        return self.container.messages[self.index]
+    Each message has a timestamp.
+    User messages have a user.
+    For system messages, the user is None.
+    Messages have text, an attachment, or both.
+    """
+
+    def __init__(self, data):
+        self.data = data
 
     def __str__(self):
         msg = self.time.strftime("[%d.%m.%y, %H:%M:%S]")
@@ -120,21 +119,21 @@ class Message:
 
     @property
     def isUserMessage(self):
-        return self.user != None
+        return self.user is not None
 
     @property
     def isSystemMessage(self):
-        return self.user == None
+        return self.user is None
 
     @property
     def hasAttachment(self):
-        return self.attachment != None
-
-#
-# Helper class for calendar, with navigation.
-#
+        return self.attachment is not None
 
 class Calendar:
+    """
+    Helper class for calendar, with navigation.
+    """
+
     def __init__(self):
         # A sorted array of years.
         self.years = list()
@@ -289,11 +288,11 @@ class Calendar:
             return nextYear, nextMonth, nextDay
         return None, None, None
 
-#
-# Helper list for user list.
-#
-
 class UsersList:
+    """
+    Helper list for user list.
+    """
+
     def __init__(self):
         self.users = set()
 
@@ -321,11 +320,11 @@ class UsersList:
             ul.append(user.printable)
         return ul
 
-#
-# Helper class to iterate over users in a user list.
-#
-
 class UsersIterator:
+    """
+    Helper class to iterate over users in a user list.
+    """
+
     def __init__(self, ul):
         self.ui = ul.users.__iter__()
 
@@ -335,11 +334,11 @@ class UsersIterator:
     def __next__(self):
         return User(self.ui.__next__())
 
-#
-# Helper class to iterate over messages in a container.
-#
-
 class MessageIterator:
+    """
+    Helper class to iterate over messages in a container.
+    """
+
     def __init__(self, container):
         self.container = container
         self.index = 0
@@ -350,26 +349,21 @@ class MessageIterator:
     def __next__(self):
         if self.index >= len(self.container.messages):
             raise StopIteration
-        this = Message(self.container, self.index)
+        this = self.container[self.index]
         self.index += 1
         return this
 
-#
-# Container for a chat with many messages.
-#
-
 class Chat:
-    reForAttachmentsNew = re.compile('\u200e<\\w+: ([ \\w.,-]+)>')
-    reForAttachmentsOld = re.compile('([ \\w.,-]+) <\u200e\\w+>')
+    """
+    Container for a chat with many messages and attachments.
+    """
 
     def __init__(self):
-        self.messages = []
+        self.messages = list()
         self.users = UsersList()
         self.calendar = Calendar()
         self.groupName = None
         self.fileName = None
-        # In a british locale, we interpret dates as d/m/y instead of m/d/y.
-        self.isBritish = "United Kingdom" in str(locale.getlocale(locale.LC_TIME))
 
     def hasFile(self, name):
         raise Exception("Must be implemented by a derived class.")
@@ -428,7 +422,7 @@ class Chat:
         return MessageIterator(self)
 
     #
-    # To access messages by index and attachments.
+    # To access messages by index and attachments by name.
     #
 
     def __contains__(self, fileNameOrIndex):
@@ -445,9 +439,9 @@ class Chat:
     def __getitem__(self, fileNameOrIndex):
         if isinstance(fileNameOrIndex, int):
             if (fileNameOrIndex >= 0) and (fileNameOrIndex < len(self.messages)):
-                return Message(self, fileNameOrIndex)
+                return Message(self.messages[fileNameOrIndex])
             elif (fileNameOrIndex < 0) and (len(self.messages) + fileNameOrIndex >= 0):
-                return Message(self, len(self.messages) + fileNameOrIndex)
+                return Message(self.messages[len(self.messages) + fileNameOrIndex])
             raise IndexError
         elif isinstance(fileNameOrIndex, str):
             if not self.hasFile(fileNameOrIndex):
@@ -457,12 +451,63 @@ class Chat:
         else:
             raise TypeError
 
+    def addMessage(self, message):
+        if isinstance(message, Message):
+            message = message.data
+        self.messages.append(message)
+        self.calendar.add(message[0])
+        self.users.add(message[1])
+
+    #
+    # Export messages to a binary stream.
+    #
+
+    def exportMessages(self, stream):
+        for message in self:
+            stream.write(str(message).encode())
+            stream.write(b'\r\n')
+
+    #
+    # Export a chat to a Zip file.
+    #
+    # Useful, e.g., after filtering and/or merging.
+    #
+    # All files are stored without compression. Images and videos are compressed
+    # formats anyway, so additional compression doesn't do much. The _chat.txt
+    # file is more compressible, but since it's tiny compared to any attachments,
+    # we don't bother.
+    #
+    # Note that fileName can also be a file-like object.
+    #
+
+    def exportToZip(self, fileName):
+        with zipfile.ZipFile(fileName, "w") as zFile:
+            for message in self:
+                if message.hasAttachment:
+                    with zFile.open(message.attachment, 'w') as aFile:
+                        self.copyFile(message.attachment, aFile)
+            with zFile.open("_chat.txt", 'w') as cFile:
+                self.exportMessages(cFile)
+
+class WaChat(Chat):
+    """
+    A chat using WhatsApp's _chat.txt file format.
+    """
+
+    reForAttachmentsNew = re.compile('\u200e<\\w+: ([ \\w.,-]+)>')
+    reForAttachmentsOld = re.compile('([ \\w.,-]+) <\u200e\\w+>')
+
+    def __init__(self):
+        super().__init__()
+        # In a british locale, we interpret dates as d/m/y instead of m/d/y.
+        self.isBritish = "United Kingdom" in str(locale.getlocale(locale.LC_TIME))
+
     def parseDate(self, strDate):
         #
         # If the date has dots, assume d.m.y.
         # If the date has slashes, assume m/d/y, unless our locale is british.
         #
-        
+
         if "." in strDate:
             day, month, year = [int(v) for v in strDate.split(".")]
         elif "/" in strDate:
@@ -472,6 +517,10 @@ class Chat:
                 month, day, year = [int(v) for v in strDate.split("/")]
         else:
             raise Exception("Unrecognized date format \"" + strDate + "\".")
+
+        #
+        # If the year was two digits, assume that it's this millenium.
+        #
 
         if year < 100:
             year += 2000
@@ -506,7 +555,7 @@ class Chat:
         date = self.parseDate(strDateTime[:commaPos])
         time = self.parseTime(strDateTime[commaPos+2:])
         return datetime.datetime.combine(date, time)
-        
+
     def parseAttachment(self, message):
         #
         # In newer WhatsApp versions, attachments are embedded in user messages like
@@ -514,7 +563,7 @@ class Chat:
         # The "Attached" keyword is localized.
         #
 
-        m = Chat.reForAttachmentsNew.search(message)
+        m = WaChat.reForAttachmentsNew.search(message)
 
         if m and self.hasFile(m[1]):
             endOfPlainText = m.start(0)
@@ -530,7 +579,7 @@ class Chat:
         # any other text.
         #
 
-        m = Chat.reForAttachmentsOld.search(message)
+        m = WaChat.reForAttachmentsOld.search(message)
 
         if m and self.hasFile(m[1]):
             return None, m[1]
@@ -601,11 +650,6 @@ class Chat:
 
         return (timestamp, userName, text, attachment)
 
-    def addMessage(self, message):
-        self.messages.append(message)
-        self.calendar.add(message[0])
-        self.users.add(message[1])
-
     def parseAndAddMessage(self, txtLine):
         if len(txtLine) == 0:
             return
@@ -619,47 +663,17 @@ class Chat:
             txtLine = rawLine.decode()
             self.parseAndAddMessage(txtLine)
 
-    #
-    # Export messages to a binary stream.
-    #
-    
-    def exportMessages(self, stream):
-        for message in self:
-            stream.write(str(message).encode())
-            stream.write(b'\r\n')
-            
-    #
-    # Export a chat to a Zip file.
-    #
-    # Useful, e.g., after filtering and/or merging.
-    #
-    # All files are stored without compression. Images and videos are compressed
-    # formats anyway, so additional compression doesn't do much. The _chat.txt
-    # file is more compressible, but since it's tiny compared to any attachments,
-    # we don't bother.
-    #
-    # Note that fileName can also be a file-like object.
-    #
+class ZippedChat(WaChat):
+    """
+    Archives exported from WhatsApp are ZIP files.
+    The ZIP file contains the file "_chat.txt".
+    This is a text file in UTF-8 format where each line is a message.
+    Note hat ZipFile also accepts file-like objects.
+    """
 
-    def exportToZip(self, fileName):
-        with zipfile.ZipFile(fileName, "w") as zFile:
-            for message in self:
-                if message.hasAttachment:
-                    with zFile.open(message.attachment, 'w') as aFile:
-                        self.copyFile(message.attachment, aFile)
-            with zFile.open("_chat.txt", 'w') as cFile:
-                self.exportMessages(cFile)
-
-#
-# Archives export from WhatsApp are ZIP files.
-# The ZIP file contains the file "_chat.txt".
-# This is a text file in UTF-8 format where each line is a message.
-# Note hat ZipFile also accepts file-like objects.
-#
-
-class ZippedChat(Chat):
+    @staticmethod
     def findPaths(fileName):
-        paths = []
+        paths = list()
         with zipfile.ZipFile(fileName) as zipFile:
             for name in zipFile.namelist():
                 if name.endswith("_chat.txt"):
@@ -667,8 +681,9 @@ class ZippedChat(Chat):
         return paths
 
     def __init__(self, fileName, pathInZip=None):
+        # pylint: disable=consider-using-with
         super().__init__()
-        if isinstance(fileName, str) or isinstance(fileName, Path):
+        if isinstance(fileName, (str, Path)):
             self.fileName = Path(fileName)
         else:
             self.fileName = None
@@ -679,7 +694,7 @@ class ZippedChat(Chat):
         self.loadMessages()
 
     def __del__(self):
-        if self.zipFile != None:
+        if self.zipFile is not None:
             self.zipFile.close()
             self.zipFile = None
 
@@ -710,11 +725,11 @@ class ZippedChat(Chat):
         pos = 0
         sliceSize = 16384
         while pos < len(data):
-            slice = data[pos:pos+sliceSize]
-            outputFile.write(slice)
-            pos += len(slice)
+            sliceData = data[pos:pos+sliceSize]
+            outputFile.write(sliceData)
+            pos += len(sliceData)
             if updatecb:
-                updatecb.update(len(slice))
+                updatecb.update(len(sliceData))
 
     def getFileSize(self, name):
         return self.zipFile.getinfo(self.canonicalName(name)).file_size
@@ -723,14 +738,14 @@ class ZippedChat(Chat):
         with self.zipFile.open(self.canonicalName("_chat.txt")) as file:
             self.loadMessagesFromStream(file)
 
-#
-# Load a "_chat.txt" text file. Look for attachments in the same directory.
-#
+class TextChat(WaChat):
+    """
+    Load a "_chat.txt" text file. Look for attachments in the same directory.
+    """
 
-class TextChat(Chat):
     def __init__(self, fileName):
         super().__init__()
-        if isinstance(fileName, str) or isinstance(fileName, Path):
+        if isinstance(fileName, (str, Path)):
             self.fileName = Path(fileName)
             self.dir = self.fileName.parent
             self.attachments = [str(f.name) for f in self.dir.iterdir()]
@@ -743,6 +758,7 @@ class TextChat(Chat):
         else:
             raise TypeError
 
+    @staticmethod
     def canonicalName(name):
         return name if ((len(name) < 2) or (name[0] != "/")) else name[1:]
 
@@ -753,16 +769,15 @@ class TextChat(Chat):
         return open(self.dir / TextChat.canonicalName(name), "rb")
 
     def copyFile(self, name, outputFile, updatecb=None):
-        pos = 0
         sliceSize = 16384
         with self.openFile(name) as inputFile:
             while True:
-                slice = inputFile.read(sliceSize)
-                if len(slice) == 0:
+                sliceData = inputFile.read(sliceSize)
+                if len(sliceData) == 0:
                     break
-                outputFile.write(slice)
+                outputFile.write(sliceData)
                 if updatecb:
-                    updatecb.update(len(slice))
+                    updatecb.update(len(sliceData))
 
     def getFileSize(self, name):
         fp = self.dir / TextChat.canonicalName(name)
@@ -772,30 +787,30 @@ class TextChat(Chat):
         with open(fileName, "rb") as file:
             self.loadMessagesFromStream(file)
 
-#
-# Load a chat from a JSON file as exported by WhatsApp-Chat-Exporter.
-#
-
 class JsonChat(Chat):
+    """
+    Load a chat from a JSON file as exported by WhatsApp-Chat-Exporter.
+    """
+
     def __init__(self, fileName, chatId=None):
         super().__init__()
-        if isinstance(fileName, str) or isinstance(fileName, Path):
+        self.mediaBase = None
+        self.attachments = dict()
+        if isinstance(fileName, (str, Path)):
             self.fileName = Path(fileName)
             self.dir = self.fileName.parent
-            self.attachments = dict()
-            self.loadJsonMessagesFromFile(fileName, chatId)
+            self.loadMessagesFromFile(fileName, chatId)
         elif isinstance(fileName, io.TextIOBase):
             self.fileName = None
             self.dir = None
-            self.attachments = dict()
-            self.loadJsonMessagesFromStream(fileName, chatId)
+            self.loadMessagesFromStream(fileName, chatId)
         elif not fileName:
             self.fileName = None
             self.dir = None
-            self.attachments = dict()
         else:
             raise TypeError
 
+    @staticmethod
     def canonicalName(name):
         return name if ((len(name) < 2) or (name[0] != "/")) else name[1:]
 
@@ -806,29 +821,28 @@ class JsonChat(Chat):
         return open(self.attachments[JsonChat.canonicalName(name)], "rb")
 
     def copyFile(self, name, outputFile, updatecb=None):
-        pos = 0
         sliceSize = 16384
         with self.openFile(name) as inputFile:
             while True:
-                slice = inputFile.read(sliceSize)
-                if len(slice) == 0:
+                sliceData = inputFile.read(sliceSize)
+                if len(sliceData) == 0:
                     break
-                outputFile.write(slice)
+                outputFile.write(sliceData)
                 if updatecb:
-                    updatecb.update(len(slice))
+                    updatecb.update(len(sliceData))
 
     def getFileSize(self, name):
         return self.attachments[JsonChat.canonicalName(name)].stat().st_size
 
-    def loadJsonMessagesFromFile(self, fileName, chatId=None):
+    def loadMessagesFromFile(self, fileName, chatId=None):
         with open(fileName, "rb") as file:
-            self.loadJsonMessagesFromStream(file, chatId)
+            self.loadMessagesFromStream(file, chatId)
 
-    def loadJsonMessagesFromStream(self, file, chatId=None):
+    def loadMessagesFromStream(self, file, chatId=None):
         jsonData = json.load(file)
-        self.loadJsonMessagesFromJson(jsonData)
+        self.loadMessagesFromJson(jsonData, chatId)
 
-    def loadJsonMessagesFromJson(self, jsonData, chatId=None):
+    def loadMessagesFromJson(self, jsonData, chatId=None):
         if not chatId:
             chatId = list(jsonData.keys())[0]
         chat = jsonData[chatId]
@@ -868,7 +882,7 @@ class JsonChat(Chat):
         attachmentPath = Path(attachmentName)
         fullPath = self.mediaBase / attachmentPath
         return fullPath.is_file()
-        
+
     def importAttachment(self, attachmentName):
         attachmentPath = Path(attachmentName)
         fullPath = self.mediaBase / attachmentPath
@@ -876,21 +890,19 @@ class JsonChat(Chat):
         self.attachments[nn] = fullPath
         return nn
 
-#
-# Container for an empty chat.
-#
-
 class NullChat(Chat):
-    pass
-
-#
-# Filter messages by time.
-#
-# We simply iterate over all messages in a chat and import the ones
-# within the desired range.
-#
+    """
+    Container for an empty chat.
+    """
 
 class FilteredByTime(Chat):
+    """
+    Filter messages by time.
+
+    We simply iterate over all messages in a chat and import the ones
+    within the desired range.
+    """
+
     def __init__(self, otherChat, fromTimestamp=None, toTimestamp=None):
         super().__init__()
         self.fileName = otherChat.fileName
@@ -905,7 +917,7 @@ class FilteredByTime(Chat):
     def openFile(self, name):
         return self.otherChat.openFile(name)
 
-    def copyFile(self, name, outputFile, updatecb):
+    def copyFile(self, name, outputFile, updatecb=None):
         return self.otherChat.copyFile(name, outputFile, updatecb)
 
     def getFileSize(self, name):
@@ -931,11 +943,11 @@ class FilteredByTime(Chat):
 
             self.addMessage(message.data)
 
-#
-# Merge multiple chats into one timeline.
-#
-
 class MergedChat(Chat):
+    """
+    Merge multiple chats into one timeline.
+    """
+
     # Takes a list of Chat.
     def __init__(self, chats):
         super().__init__()
@@ -949,6 +961,7 @@ class MergedChat(Chat):
         else:
             self.fileName = "(Merged)"
 
+    @staticmethod
     def canonicalName(name):
         return name if ((len(name) < 2) or (name[0] != "/")) else name[1:]
 
@@ -986,7 +999,7 @@ class MergedChat(Chat):
     def importMessages(self):
         indices = [0] * len(self.chats)
         nextIndex = self.getIndexOfNextMessage(indices)
-        while nextIndex != None:
+        while nextIndex is not None:
             message = self.chats[nextIndex][indices[nextIndex]]
             self.importMessage(message, nextIndex)
             indices[nextIndex] += 1
@@ -997,20 +1010,21 @@ class MergedChat(Chat):
     def getIndexOfNextMessage(self, indices):
         lowestIndex = None
         lowestTimestamp = None
+        # pylint: disable=consider-using-enumerate
         for i in range(len(self.chats)):
             if indices[i] < len(self.chats[i]):
                 thisTimestamp = self.chats[i][indices[i]].time
-                if (lowestTimestamp == None) or (thisTimestamp < lowestTimestamp):
+                if (lowestTimestamp is None) or (thisTimestamp < lowestTimestamp):
                     lowestIndex = i
                     lowestTimestamp = thisTimestamp
         return lowestIndex
 
-#
-# Generic, flexible open function.
-#
-
 def openChat(files):
-    if isinstance(files, list) or isinstance(files, tuple):
+    """
+    Generic, flexible open function.
+    """
+
+    if isinstance(files, (list, tuple)):
         if len(files) == 0:
             return NullChat()
         elif len(files) == 1:
@@ -1033,7 +1047,7 @@ def openChat(files):
             return ZippedChat(file)
         else:
             return MergedChat([ZippedChat(file, path) for path in paths])
-    elif isinstance(file, str) or isinstance(file, Path):
+    elif isinstance(file, (str, Path)):
         path = Path(file)
         if path.suffix == ".zip":
             return ZippedChat(path)
@@ -1047,22 +1061,22 @@ def openChat(files):
                 return TextChat(textFile)
     raise TypeError
 
-#
-# For testing and debugging: Get an array of lines from the chat.
-#
-
 def getRawLines(fn):
+    """
+    For testing and debugging: Get an array of lines from the chat.
+    """
+
     with zipfile.ZipFile(fn) as zipFile:
         with zipFile.open("_chat.txt") as txtFile:
             rawlines = txtFile.read().split(b'\r\n')
     return [rawline.decode() for rawline in rawlines]
 
-#
-# Allow merging chats from the command line.
-#
-
 def mergeChats(outputFile, chatFiles, verbose):
-    chats = []
+    """
+    Allow merging chats from the command line.
+    """
+
+    chats = list()
     for fn in chatFiles:
         if verbose:
             print("Loading \"" + fn + "\" ... ", end="", flush=True)
@@ -1070,20 +1084,21 @@ def mergeChats(outputFile, chatFiles, verbose):
         if verbose:
             print("{0} messages loaded.".format(len(chat)))
         chats.append(chat)
-        
+
     if verbose:
-        print("Merging \"" + fn + "\" ... ", end="", flush=True)
+        print("Merging ... ", end="", flush=True)
     mergedChat = MergedChat(chats)
     if verbose:
         print("{0} messages merged.".format(len(mergedChat)))
 
     if verbose:
-        print("Exporting \"" + fn + "\" ... ", end="", flush=True)
+        print("Exporting \"" + outputFile + "\" ... ", end="", flush=True)
     mergedChat.exportToZip(outputFile)
     if verbose:
         print("done.")
 
 def mergeChatsCli():
+    # pylint: disable=import-outside-toplevel
     import argparse
     import glob
     parser = argparse.ArgumentParser(prog="WhatsApp Chat Merger")
@@ -1091,7 +1106,7 @@ def mergeChatsCli():
     parser.add_argument('-v', '--verbose', default=False, action=argparse.BooleanOptionalAction, help="Print information about progress.")
     parser.add_argument('chats', nargs="+", default=[], help="Chats to import.")
     args = parser.parse_args()
-    chatFiles = []
+    chatFiles = list()
     for chat in args.chats:
         chatFiles.extend(glob.glob(chat))
     mergeChats(args.outputFile, chatFiles, args.verbose)

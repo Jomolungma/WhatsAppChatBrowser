@@ -1,0 +1,35 @@
+#
+# At the moment, pylint is used to catch coding errors, not to enforce
+# a coding standard.
+#
+# Pylint keeps complaining about import issues. Silence those messages
+# for now, since importing seems to work fine.
+#
+
+[MESSAGES CONTROL]
+# E0401: Unable to import.
+# C0103: name "..." doesn't conform to snake_case naming style.
+# C0116: Missing function or method docstring.
+# C0209: Consider using f-string.
+# C0301: Line too long.
+# C0302: Too many lines in module.
+# W0613: Unused argument.
+# W0702: No exception type(s) specified.
+# W0718: Catching too general exception Exception.
+# W0719: Raising too general exception: Exception.
+# R0401: Cyclic import.
+# R0902: Too many instance attributes.
+# R0903: Too few public methods.
+# R0904: Too many public methods.
+# R0911: Too many return statements.
+# R0912: Too many branches.
+# R0913: Too many arguments.
+# R0914: Too many local variables.
+# R0915: Too many statements.
+# R0917: Too many positional arguments.
+# R1705: Unnecessary "else" after "return".
+# R1716: Simplify chained comparison.
+# R1720: Unnecessary "elif" after "raise".
+# R1734: Consider using [] instead of list().
+# R1735: Consider using {} instead of a call to dict().
+disable=E0401,C0103,C0116,C0209,C0301,C0302,W0613,W0702,W0718,W0719,R0401,R0902,R0903,R0904,R0911,R0912,R0913,R0914,R0915,R0917,R1705,R1716,R1720,R1734,R1735

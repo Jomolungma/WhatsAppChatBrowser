@@ -17,6 +17,10 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+"""
+The GUI.
+"""
+
 import datetime
 import webbrowser
 import threading
@@ -26,13 +30,11 @@ from tkinter import ttk, font
 from pathlib import Path
 
 if __package__ == "wacb":
-    from . import wacbchat
     from . import wacbapp
     from . import wacbemoji
     from . import wacbbgurl
     from . import wacbcss
 else:
-    import wacbchat
     import wacbapp
     import wacbemoji
     import wacbbgurl
@@ -55,6 +57,10 @@ except:
 #
 
 class DownloadStatisticsCollector:
+    """
+    Callback tracking HTTP requests. See wacbapp.HttpHtmlGlue.
+    """
+
     def __init__(self):
         self.lock = threading.Lock()
         self.reset()
@@ -88,11 +94,11 @@ class DownloadStatisticsCollector:
             else:
                 self.failedDownloads += 1
 
-#
-# Top-level window to select an emoji file.
-#
-
 class EmojiSelector(tkinter.Toplevel):
+    """
+    Top-level window to select an emoji file.
+    """
+
     def __init__(self, parent, currentFileName=None, currentPathInZip=None):
         super().__init__(parent.top)
         self.success = False
@@ -163,13 +169,14 @@ class EmojiSelector(tkinter.Toplevel):
         widget.configure(values=pathsInZip)
         if len(pathsInZip) > 0:
             if currentPath not in pathsInZip:
+                # pylint: disable=consider-using-enumerate
                 suggestedIndex = 0
                 for i in range(len(pathsInZip)):
                     if "/32/" in pathsInZip[i]:
                         suggestedIndex = i
                 widget.current(suggestedIndex)
         else:
-            widget.set("")    
+            widget.set("")
         self.statusMessage.set(str(len(self.database)) + " emojis loaded.")
         self.widgets["okButton"].state(["!disabled"])
 
@@ -196,11 +203,11 @@ class EmojiSelector(tkinter.Toplevel):
         self.grab_set()
         self.parent.top.wait_window(self)
 
-#
-# Top-level window for downloading Unicode emojis.
-#
-
 class EmojiDownloader(tkinter.Toplevel):
+    """
+    Top-level window for downloading Unicode emojis.
+    """
+
     updatePeriodMs = 100
 
     def __init__(self, parent):
@@ -277,7 +284,7 @@ class EmojiDownloader(tkinter.Toplevel):
         if self.canceled:
             self.destroy()
             return
-        if self.downloader == None:
+        if self.downloader is None:
             return
         if not self.downloader.done:
             currentName = self.downloader.getCurrentName()
@@ -346,11 +353,11 @@ class EmojiDownloader(tkinter.Toplevel):
         self.grab_set()
         self.parent.top.wait_window(self)
 
-#
-# Top-level window for HTTP configuration.
-#
-
 class HttpConfigurator(tkinter.Toplevel):
+    """
+    Top-level window for HTTP configuration.
+    """
+
     def __init__(self, parent, currentHostName=None, currentPortNumber=None):
         super().__init__(parent.top)
         self.success = False
@@ -417,11 +424,11 @@ class HttpConfigurator(tkinter.Toplevel):
         self.grab_set()
         self.parent.top.wait_window(self)
 
-#
-# Top-level window for filtering by date.
-#
-
 class FilterByDate(tkinter.Toplevel):
+    """
+    Top-level window for filtering by date.
+    """
+
     def __init__(self, parent, app):
         super().__init__(parent.top)
         self.success = False
@@ -509,11 +516,11 @@ class FilterByDate(tkinter.Toplevel):
         self.grab_set()
         self.parent.top.wait_window(self)
 
-#
-# The UI.
-#
-
 class WhatsAppChatBrowser(tkinter.Frame):
+    """
+    The main user interface.
+    """
+
     updatePeriodMs = 1000
 
     def __init__(self, top, useConfigFile=True, configFile=None):
@@ -687,7 +694,7 @@ class WhatsAppChatBrowser(tkinter.Frame):
     # - File names with spaces are quoted, Tcl-style, with {}.
     # - Multiple file names are separated with spaces.
     #
-    
+
     def filesDropped(self, event=None):
         if event and event.data:
             fileNames = []
@@ -713,7 +720,6 @@ class WhatsAppChatBrowser(tkinter.Frame):
             self.open(fileNames)
 
     def setupDnd(self):
-        global haveDnd
         if haveDnd:
             self.top.drop_target_register(tkinterdnd2.DND_FILES)
             self.top.dnd_bind("<<Drop>>", self.filesDropped)
@@ -779,7 +785,6 @@ class WhatsAppChatBrowser(tkinter.Frame):
         self.updateMenuItemState("menuBar", item, state)
 
     def updateWidgets(self):
-        global havePyperClip
         self.updateAppConfigurationFromUi()
         self.updateFileMenuItemState("Open ...", not self.running)
         self.updateFileMenuItemState("Merge ...", not self.running)
@@ -839,7 +844,7 @@ class WhatsAppChatBrowser(tkinter.Frame):
         self.updateWidgets()
         if self.loaded and self.autostart.get():
             self.start()
-        
+
     def open(self, fileNames):
         try:
             self.app.open(fileNames)
@@ -885,7 +890,7 @@ class WhatsAppChatBrowser(tkinter.Frame):
             statsMessage += "{0:.1f} MB served.".format(bytesServed / (1 << 20))
             self.statusMessage.set(statsMessage)
         self.top.after(WhatsAppChatBrowser.updatePeriodMs, self.updateStatistics)
-        
+
     def stop(self):
         self.app.stop()
         self.updateWidgets()
@@ -1041,7 +1046,6 @@ class WhatsAppChatBrowser(tkinter.Frame):
         self.statusMessage.set("Filter reset, " + str(len(self.app.chat)) + " messages loaded.")
 
     def copyUrlFromMenu(self):
-        global havePyperClip
         if self.running:
             if havePyperClip:
                 pyperclip.copy(self.app.url)
@@ -1071,11 +1075,11 @@ def run(chatFiles=None, title=None, useConfigFile=True, configFile=None, verbosi
         top = tkinterdnd2.TkinterDnD.Tk()
     else:
         top = tkinter.Tk()
-    wacb = WhatsAppChatBrowser(top, useConfigFile, configFile)
+    app = WhatsAppChatBrowser(top, useConfigFile, configFile)
     if chatFiles:
-        wacb.open(chatFiles)
+        app.open(chatFiles)
     if title:
-        wacb.title.set(title)
+        app.title.set(title)
     top.mainloop()
 
 if __name__ == "__main__":

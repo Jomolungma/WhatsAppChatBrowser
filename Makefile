@@ -8,6 +8,9 @@ exe:
 dist:
 	python -m build
 
+lint:
+	pylint wacb
+
 test:
 	pytest --cov=wacb --cov-report html
 

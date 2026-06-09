@@ -6,7 +6,7 @@ from wacb import wacbconfig
 from wacb import wacbhtml
 from wacb import wacbapp
 
-class ChatWithAttachments(wacbchat.Chat):
+class ChatWithAttachments(wacbchat.WaChat):
     def __init__(self):
         super().__init__()
         self.attachments = {}

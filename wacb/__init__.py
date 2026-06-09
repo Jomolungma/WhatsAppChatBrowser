@@ -1,5 +1,8 @@
 #!python
-# Whats App Chat Browser
+
+"""
+Whats App Chat Browser.
+"""
 
 import sys
 from .wacb import *
@@ -19,5 +22,6 @@ if not "-m" in sys.argv:
     def runWacbCli():
         runWacb(False)
 
+    # pylint: disable=function-redefined
     def mergeChatsCli():
         wacb.mergeChatsCli()

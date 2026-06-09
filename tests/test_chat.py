@@ -4,7 +4,7 @@ from wacb import wacbchat
 from .wacbtesthelpers import *
 
 def test_parseSystemMessage():
-    wa = wacbchat.Chat()
+    wa = wacbchat.WaChat()
     addMessagesToChat(wa, [
         '[31.12.24, 20:52:25] Test: \u200eNachrichten und Anrufe sind Ende-zu-Ende-verschl\u00fcsselt. Nur Personen in diesem Chat k\u00f6nnen sie lesen, anh\u00f6ren oder teilen.\r\n'
     ])
@@ -13,14 +13,14 @@ def test_parseSystemMessage():
     assert wa[0].time.hour == 20 and wa[0].time.minute == 52 and wa[0].time.second == 25
 
 def test_parseMessage():
-    wa = wacbchat.Chat()
+    wa = wacbchat.WaChat()
     addMessagesToChat(wa, [
         '[09.01.25, 15:48:14] Nobody: Drinnen oder drau\u00dfen?'
     ])
     assert wa[0].isUserMessage and wa[0].user == "Nobody"
 
 def test_parseMessageFromUnknownUser():
-    wa = wacbchat.Chat()
+    wa = wacbchat.WaChat()
     addMessagesToChat(wa, [
         '[12.01.25, 11:01:18] ~\u202fNobody: Look here.'
     ])
@@ -36,7 +36,7 @@ def test_parseMessageWithAttachment():
     assert wa[0].hasAttachment
 
 def test_parseOldSystemMessage():
-    wa = wacbchat.Chat()
+    wa = wacbchat.WaChat()
     addMessagesToChat(wa, [
         '20.10.16, 09:17:46: \u200eNachrichten in diesem Chat sowie Anrufe sind jetzt mit Ende-zu-Ende-Verschl\u00fcsselung gesch\u00fctzt.'
     ])
@@ -45,14 +45,14 @@ def test_parseOldSystemMessage():
     assert wa[0].time.hour == 9 and wa[0].time.minute == 17 and wa[0].time.second == 46
 
 def test_parseOldMessage():
-    wa = wacbchat.Chat()
+    wa = wacbchat.WaChat()
     addMessagesToChat(wa, [
         '24.12.16, 13:08:16: Nobody: Frohe Weihnachten!'
     ])
     assert wa[0].isUserMessage and wa[0].user == "Nobody"
 
 def test_parseOldMessageWithPhoneNumber():
-    wa = wacbchat.Chat()
+    wa = wacbchat.WaChat()
     addMessagesToChat(wa, [
         '20.10.16, 11:29:55: \u202a+49\xa0123\xa045678901\u202c: Danke.'
     ])
@@ -68,7 +68,7 @@ def test_parseOldAttachment():
     assert wa[0].hasAttachment
 
 def test_usLocaleMessage():
-    wa = wacbchat.Chat()
+    wa = wacbchat.WaChat()
     addMessagesToChat(wa, [
         '[4/29/26, 3:18:14\u202fPM] Nobody: Hallo?'
     ])
@@ -80,7 +80,7 @@ def test_ukLocaleMessage():
     oldLocale = locale.getlocale(locale.LC_TIME)
     try:
         locale.setlocale(locale.LC_TIME, "uk")
-        wa = wacbchat.Chat()
+        wa = wacbchat.WaChat()
         addMessagesToChat(wa, [
             '[07/05/2026, 3:18:14\u202fAM] Nobody: Hallo?'
         ])

@@ -16,6 +16,10 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+"""
+Command-line interface.
+"""
+
 import glob
 import locale
 import argparse
@@ -46,7 +50,7 @@ def run(ui=None):
     parser.add_argument('chats', nargs="*", default=[], help="The exported chat file to load.")
     args = parser.parse_args()
 
-    useUi = True if ui==None and args.ui==None else (ui if args.ui==None else args.ui)
+    useUi = True if ui is None and args.ui is None else (ui if args.ui is None else args.ui)
     useConfigFile = not args.noConfigFile
     configFile = args.configFile
     verbosity = args.verbose
@@ -64,6 +68,7 @@ def run(ui=None):
         wacbui.run(chatFiles, title, useConfigFile, configFile, verbosity)
     else:
         if len(chatFiles) == 0:
+            # pylint: disable=consider-using-sys-exit
             print("Must provide exported chat file.")
             exit(1)
         wacbapp.run(chatFiles, title, useConfigFile, configFile, verbosity)

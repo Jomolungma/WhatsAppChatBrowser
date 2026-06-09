@@ -1,6 +1,3 @@
-import threading
-import urllib.request
-
 #
 #    WhatsApp Chat Browser
 #
@@ -18,11 +15,18 @@ import urllib.request
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-#
-# Small helpers to download URLs in the background, using a separate thread.
-#
+"""
+Small helpers to download URLs in the background, using a separate thread.
+"""
+
+import threading
+import urllib.request
 
 class BgUrlDownloader:
+    """
+    Download a URL in the background, using a separate thread.
+    """
+
     bytesToReadEachTime = 1024
 
     def __init__(self, url, callback=None):
@@ -38,6 +42,7 @@ class BgUrlDownloader:
         self.thread = threading.Thread(target=self.download)
         self.thread.start()
 
+    @staticmethod
     def getNameForUrl(url):
         splitUrl = url.split("/")
         if len(splitUrl) > 1 and len(splitUrl[-1]) != 0:
@@ -91,6 +96,7 @@ class BgUrlDownloader:
             self.callback()
 
     def download(self):
+        # pylint: disable=consider-using-with
         try:
             self.http = urllib.request.urlopen(self.url)
         except:
@@ -113,6 +119,10 @@ class BgUrlDownloader:
         self.downloadFinished(not self.canceled)
 
 class BgUrlsIterator:
+    """
+    Iterator helper for downloading multiple URLs.
+    """
+
     def __init__(self, downloader):
         self.downloader = downloader
         self.index = 0
@@ -128,6 +138,10 @@ class BgUrlsIterator:
         return this
 
 class BgUrlsDownloader:
+    """
+    Sequentially download multiple URLs in the background.
+    """
+
     def __init__(self, urls, callback=None):
         self.index = 0
         self.urls = urls
@@ -140,7 +154,7 @@ class BgUrlsDownloader:
     def __bool__(self):
         success = True
         for download in self.downloads:
-            if (download == None) or not bool(download):
+            if (download is None) or not bool(download):
                 success = False
         return success
 
@@ -185,7 +199,7 @@ class BgUrlsDownloader:
     def downloadFinished(self):
         if not self.running or self.canceled:
             return
-        if self.downloads[self.index] == None:
+        if self.downloads[self.index] is None:
             return
         if self.downloads[self.index].done:
             self.index += 1
@@ -200,4 +214,3 @@ class BgUrlsDownloader:
         if not self.running:
             return 0
         return len(self.downloads[self.index])
-

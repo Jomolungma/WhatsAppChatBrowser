@@ -15,22 +15,26 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+"""
+Generate HTML for conversations.
+"""
+
 import re
 import html
 import datetime
 
 if __package__ == "wacb":
-    from . import wacbchat
     from . import wacbimg
     from . import wacbcss
-    from . import wacbemoji
 else:
-    import wacbchat
     import wacbimg
     import wacbcss
-    import wacbemoji
 
 class WacbHtmlFormatter:
+    """
+    Generate HTML documents for conversations.
+    """
+
     cssUrl = "wacb.css"
     lineTerminator = "\n"
     # Matches URLs, _italics_ and *bold* formatting.
@@ -71,7 +75,7 @@ class WacbHtmlFormatter:
             self.formatForMonth = self.config["formatForMonth"]
         if "formatForDay" in self.config:
             self.formatForDay = self.config["formatForDay"]
-            
+
         if ("cssFileName" in self.config) and ("builtinCss" in self.config):
             self.css = wacbcss.makeCssProvider(self.config["cssFileName"], self.config["builtinCss"])
         else:
@@ -105,6 +109,7 @@ class WacbHtmlFormatter:
                     return self.css[element][parameter]
         return None
 
+    @staticmethod
     def joinLines(lines):
         result = ""
         for line in lines:
@@ -288,29 +293,29 @@ class WacbHtmlFormatter:
         lastDotPos = attachmentName.rfind(".")
         attachmentExt = attachmentName[lastDotPos+1:] if lastDotPos != -1 else None
         if (attachmentExt in ["jpg", "jpeg", "png", "thumb", "webp"]) and self.inlineImages:
-            html = self.formatImageAttachmentMessage(message)
+            htmlLines = self.formatImageAttachmentMessage(message)
         elif (attachmentExt in ["mp4", "mov"]) and self.inlineVideo:
-            html = self.formatVideoAttachmentMessage(message)
+            htmlLines = self.formatVideoAttachmentMessage(message)
         elif (attachmentExt in ["mp3", "3gp", "m4a", "opus"]) and self.inlineAudio:
-            html = self.formatAudioAttachmentMessage(message)
+            htmlLines = self.formatAudioAttachmentMessage(message)
         else:
-            html = self.formatGenericAttachmentMessage(message)
+            htmlLines = self.formatGenericAttachmentMessage(message)
         self.linkedAttachments.add(message.attachment)
-        return html
+        return htmlLines
 
     def formatUserMessage(self, message):
         htmlLines = [
             "<div class=\"message\">",
             "<div class=\"{0} userMessage\">".format(self.getMsgClass(message))
         ]
-        html = WacbHtmlFormatter.joinLines(htmlLines)
-        html += self.senderId(message)
+        htmlCode = WacbHtmlFormatter.joinLines(htmlLines)
+        htmlCode += self.senderId(message)
 
         if message.hasAttachment:
-            html += self.formatAttachmentMessage(message)
+            htmlCode += self.formatAttachmentMessage(message)
 
         if message.text:
-            html += self.formatRegularUserMessage(message)
+            htmlCode += self.formatRegularUserMessage(message)
 
         htmlLines = [
             "<div class=\"timestamp\">",
@@ -320,8 +325,8 @@ class WacbHtmlFormatter:
             "</div>",
             "<p>"
         ]
-        html += WacbHtmlFormatter.joinLines(htmlLines)
-        return html
+        htmlCode += WacbHtmlFormatter.joinLines(htmlLines)
+        return htmlCode
 
     def formatSystemMessage(self, message):
         htmlLines = [
@@ -498,18 +503,18 @@ class WacbHtmlFormatter:
 
     def formatMessage(self, message):
         if message.isSystemMessage:
-            html = self.formatSystemMessage(message)
+            htmlLines = self.formatSystemMessage(message)
         else:
-            html = self.formatUserMessage(message)
-        return html
+            htmlLines = self.formatUserMessage(message)
+        return htmlLines
 
     #
     # Writes a full HTML document with all messages to the output file.
     #
 
     def generateMessagesDocument(self, outputFile, fromDate=None, toDate=None):
-        html = self.htmlHeader()
-        outputFile.write(html.encode())
+        htmlLines = self.htmlHeader()
+        outputFile.write(htmlLines.encode())
 
         if fromDate:
             firstIndex = self.messageContainer.findByTimestamp(fromDate)
@@ -522,21 +527,21 @@ class WacbHtmlFormatter:
             lastMessageTimestamp = self.messageContainer[firstIndex-1].time
 
         if firstIndex >= len(self.messageContainer):
-            html = "<b>No messages.</b>"
-            outputFile.write(html.encode())
+            htmlLines = "<b>No messages.</b>"
+            outputFile.write(htmlLines.encode())
 
         for index in range(firstIndex, len(self.messageContainer)):
             message = self.messageContainer[index]
             if toDate and message.time.date() >= toDate:
                 break
-            html = self.navigationHeaders(lastMessageTimestamp, message.time)
-            outputFile.write(html.encode())
-            html = self.formatMessage(message)
-            outputFile.write(html.encode())
+            htmlLines = self.navigationHeaders(lastMessageTimestamp, message.time)
+            outputFile.write(htmlLines.encode())
+            htmlLines = self.formatMessage(message)
+            outputFile.write(htmlLines.encode())
             lastMessageTimestamp = message.time
 
-        html = self.htmlFooter()
-        outputFile.write(html.encode())
+        htmlLines = self.htmlFooter()
+        outputFile.write(htmlLines.encode())
 
     def generateSinglePage(self, outputFile):
         self.generateMessagesDocument(outputFile)
@@ -611,23 +616,23 @@ class WacbHtmlFormatter:
     #
 
     def generateNavigationIndex(self, outputFile):
-        html = self.htmlHeader()
-        outputFile.write(html.encode())
+        htmlLines = self.htmlHeader()
+        outputFile.write(htmlLines.encode())
 
         lastMessageTimestamp = None
         for message in self.messageContainer:
-            html = self.navigationIndex(lastMessageTimestamp, message.time)
-            outputFile.write(html.encode())
+            htmlLines = self.navigationIndex(lastMessageTimestamp, message.time)
+            outputFile.write(htmlLines.encode())
             lastMessageTimestamp = message.time
 
         if not lastMessageTimestamp:
-            html = "<b>No messages.</b>"
-            outputFile.write(html.encode())
+            htmlLines = "<b>No messages.</b>"
+            outputFile.write(htmlLines.encode())
 
-        html = self.navigationIndex(lastMessageTimestamp, None)
-        outputFile.write(html.encode())
-        html = self.htmlFooter()
-        outputFile.write(html.encode())
+        htmlLines = self.navigationIndex(lastMessageTimestamp, None)
+        outputFile.write(htmlLines.encode())
+        htmlLines = self.htmlFooter()
+        outputFile.write(htmlLines.encode())
 
     #
     # Write the CSS document.
@@ -649,7 +654,7 @@ class WacbHtmlFormatter:
         oops = False
         fileNameMatch = WacbHtmlFormatter.regexForFileName.match(url)
 
-        if url == "/index.html" or url == "index.html":
+        if url in ("/index.html", "index.html"):
             if (self.config["showAs"] == "Annual") or (self.config["showAs"] == "Monthly"):
                 self.generateNavigationIndex(outputFile)
             else:
@@ -671,20 +676,21 @@ class WacbHtmlFormatter:
             oops = True
 
         if oops:
-            html = self.htmlHeader()
-            outputFile.write(html.encode())
+            htmlCode = self.htmlHeader()
+            outputFile.write(htmlCode.encode())
 
-            html = "<b>Oops.</b>"
-            outputFile.write(html.encode())
+            htmlCode = "<b>Oops.</b>"
+            outputFile.write(htmlCode.encode())
 
-            html = self.htmlFooter()
-            outputFile.write(html.encode())
+            htmlCode = self.htmlFooter()
+            outputFile.write(htmlCode.encode())
 
     #
     # Do I feel responsible for this URL?
     #
 
     def isCssUrl(self, url):
+        # pylint: disable=consider-using-in
         return self.css and ((url == WacbHtmlFormatter.cssUrl) or (url[1:] == WacbHtmlFormatter.cssUrl))
 
     def isHtmlUrl(self, url):
@@ -717,4 +723,3 @@ class WacbHtmlFormatter:
                 urls.append(self.linkMonth(year, month))
                 year, month = self.messageContainer.calendar.getNextMonth(year, month)
         return urls
-
