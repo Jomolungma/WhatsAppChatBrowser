@@ -91,7 +91,7 @@ class Message:
         if self.hasAttachment:
             if self.text and len(self.text) > 0:
                 msg += " "
-            msg += "\u200e<Attached: " + self.attachment + ">"
+            msg += "\u200e<Attached: " + str(self.attachment) + ">"
         return msg
 
     def __eq__(self, other):
@@ -129,9 +129,43 @@ class Message:
     def hasAttachment(self):
         return self.attachment is not None
 
+class Attachment:
+    """
+    Represents an attachment.
+
+    An attachment has a name that is valid within its containing Chat.
+    """
+
+    def __init__(self, chat, name):
+        self.chat = chat
+        self.name = name
+
+    def __str__(self):
+        return self.name
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def openFile(self):
+        return self.chat.openFile(self.name)
+
+    def copyFile(self, outputFile, updatecb=None):
+        return self.chat.copyFile(self.name, outputFile, updatecb)
+
+    def getFileSize(self):
+        return self.chat.getFileSize(self.name)
+
 class Calendar:
     """
-    Helper class for calendar, with navigation.
+    Helper class for a calendar, with navigation.
+
+    This calendar collects all dates for which messages are available.
+    I.e., it is not a general-purpose wall calendar, but it only has
+    entries for which at least one message is available.
+
+    E.g., "getNextDay" returns the next day for which there is a
+    chat message. If there are messages on Jan 17 and Feb 12,
+    getNextDay(Jan 17) would not return Jan 18, but Feb 12.
     """
 
     def __init__(self):
@@ -451,15 +485,35 @@ class Chat:
         else:
             raise TypeError
 
+    #
+    # Add a message to this chat. The message should be a tuple:
+    #
+    # - message[0]: message timestamp, as a datetime object.
+    # - message[1]: user name as a str, or None for system messages.
+    # - message[2]: message text as a str, or None.
+    # - message[3]: an Attachment object referencing self, or None.
+    #
+    # This function is typically called from derived classes only.
+    #
+
     def addMessage(self, message):
         if isinstance(message, Message):
             message = message.data
+        if len(message) != 4:
+            raise TypeError
+        if not isinstance(message[0], datetime.datetime):
+            raise TypeError
+        if message[3]:
+            if not isinstance(message[3], Attachment):
+                raise TypeError
+            if message[3].chat is not self:
+                raise ValueError
         self.messages.append(message)
         self.calendar.add(message[0])
         self.users.add(message[1])
 
     #
-    # Export messages to a binary stream.
+    # Export messages to a binary stream, in "_chat.txt" format.
     #
 
     def exportMessages(self, stream):
@@ -484,8 +538,8 @@ class Chat:
         with zipfile.ZipFile(fileName, "w") as zFile:
             for message in self:
                 if message.hasAttachment:
-                    with zFile.open(message.attachment, 'w') as aFile:
-                        self.copyFile(message.attachment, aFile)
+                    with zFile.open(str(message.attachment), 'w') as aFile:
+                        message.attachment.copyFile(aFile)
             with zFile.open("_chat.txt", 'w') as cFile:
                 self.exportMessages(cFile)
 
@@ -500,6 +554,7 @@ class WaChat(Chat):
     def __init__(self):
         super().__init__()
         # In a british locale, we interpret dates as d/m/y instead of m/d/y.
+        # This requires that locale.setlocale(locale.LC_ALL, '') was called first.
         self.isBritish = "United Kingdom" in str(locale.getlocale(locale.LC_TIME))
 
     def parseDate(self, strDate):
@@ -570,7 +625,7 @@ class WaChat(Chat):
             messageText = message[0:endOfPlainText].strip()
             if len(messageText) == 0:
                 messageText = None
-            return messageText, m[1]
+            return messageText, Attachment(self, m[1])
 
         #
         # In older WhatsApp versions, attachments are embedded in user messages like
@@ -582,7 +637,7 @@ class WaChat(Chat):
         m = WaChat.reForAttachmentsOld.search(message)
 
         if m and self.hasFile(m[1]):
-            return None, m[1]
+            return None, Attachment(self, m[1])
 
         #
         # This message does not appear to have an attachment.
@@ -888,7 +943,7 @@ class JsonChat(Chat):
         fullPath = self.mediaBase / attachmentPath
         nn = "{0:08d}-{1}".format(len(self.messages), attachmentPath.name)
         self.attachments[nn] = fullPath
-        return nn
+        return Attachment(self, nn)
 
 class NullChat(Chat):
     """
@@ -985,12 +1040,12 @@ class MergedChat(Chat):
         if message.hasAttachment:
             # Attachment filenames begin with a sequence number.
             # We drop that sequence number and use our own.
-            on = message.attachment
+            on = message.attachment.name
             dp = on.find("-")
             fn = on[dp+1:] if dp != -1 and on[:dp].isdigit() else on
             nn = "{0:08d}-{1}".format(len(self.messages), fn)
             self.attachments[nn] = (index, on)
-            messageData[3] = nn
+            messageData[3] = Attachment(self, nn)
         if len(self) == 0 or self[-1] != messageData:
             self.addMessage(messageData)
 
@@ -1022,10 +1077,23 @@ class MergedChat(Chat):
 def openChat(files):
     """
     Generic, flexible open function.
+
+    This function supports:
+    - A file name, path-like object or file-like object to either:
+      - A ZIP file exported by WhatsApp, or a ZIP file containing
+        multiple subdirectories with chats exported by WhatsApp.
+      - A "_chat.txt" text file exported by WhatsApp.
+      - A JSON file exported by WhatsApp-Chat-Exporter.
+    - A file name or path-like object to a directory that contains a
+      "_chat.txt" file.
+    - None.
+    - A list or tuple with a combination of any of the above.
+
+    In any case, it returns a Chat instance.
     """
 
-    if isinstance(files, (list, tuple)):
-        if len(files) == 0:
+    if files is None or isinstance(files, (list, tuple)):
+        if files is None or len(files) == 0:
             return NullChat()
         elif len(files) == 1:
             return openChat(files[0])

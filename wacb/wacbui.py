@@ -334,7 +334,7 @@ class EmojiDownloader(tkinter.Toplevel):
         self.fileName.set(str(Path(fileName)))
         self.pathInZip.set("")
         try:
-            wacbemoji.exportToZip(self.database, self.fileName.get())
+            self.database.exportToZip(self.fileName.get())
         except:
             self.statusMessage.set("Saving as \"" + self.fileName.get() + "\" failed.")
             return

@@ -273,6 +273,10 @@ class Database:
         subTree = self[codePoints]
         return None in subTree
 
+    def exportToZip(self, zipFileName):
+        with ZipExporter(zipFileName) as ze:
+            ze.export(self)
+
 class ZippedDatabase(Database):
     """
     Load a set of emojis from a Zip file.
@@ -398,6 +402,12 @@ class ZipExporter:
     def __del__(self):
         self.close()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, t, v, tb):
+        self.close()
+
     def close(self):
         if self.zipFile is not None:
             self.zipFile.close()
@@ -415,11 +425,6 @@ class ZipExporter:
 
         for node in subTree.possibleContinuations():
             self.exportSubtree(subTree[node])
-
-def exportToZip(database, zipFileName):
-    ze = ZipExporter(zipFileName)
-    ze.export(database)
-    ze.close()
 
 class Downloader:
     """
@@ -494,7 +499,7 @@ class Downloader:
         if len(self.database) > 0:
             if self.verbose:
                 print("Exporting emojis to \"" + zipFileName + "\" ... ", end="", flush=True)
-            exportToZip(self.database, zipFileName)
+            self.database.exportToZip(zipFileName)
             if self.verbose:
                 print("done.")
         else:

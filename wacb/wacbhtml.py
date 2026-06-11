@@ -117,6 +117,9 @@ class WacbHtmlFormatter:
             result += WacbHtmlFormatter.lineTerminator
         return result
 
+    def urlForAttachment(self, attachment):
+        return attachment.name
+
     def htmlHeader(self):
         headerLines = [
             "<!DOCTYPE html>"
@@ -246,52 +249,57 @@ class WacbHtmlFormatter:
         return width, height
 
     def formatImageAttachmentMessage(self, message):
-        with self.messageContainer.openFile(message.attachment) as imageFile:
+        attachmentUrl = self.urlForAttachment(message.attachment)
+
+        with message.attachment.openFile() as imageFile:
             imageWidth, imageHeight = wacbimg.ImageHelper.getImageSizeFromFile(imageFile)
 
         if imageWidth:
             imageWidth, imageHeight = self.scaleImage(imageWidth, imageHeight)
 
             htmlLines = [
-                "<a href=\"" + message.attachment + "\">",
-                "<img class=\"inlineImage\" width=\"{0}\" height=\"{1}\" src=\"{2}\">".format(imageWidth, imageHeight, message.attachment),
+                "<a href=\"" + attachmentUrl + "\">",
+                "<img class=\"inlineImage\" width=\"{0}\" height=\"{1}\" src=\"{2}\">".format(imageWidth, imageHeight, attachmentUrl),
                 "</a>"
             ]
         else:
             htmlLines = [
-                "<img class=\"inlineImage\" src=\"" + message.attachment + "\">",
+                "<img class=\"inlineImage\" src=\"" + attachmentUrl + "\">",
             ]
 
         return WacbHtmlFormatter.joinLines(htmlLines)
 
     def formatVideoAttachmentMessage(self, message):
+        attachmentUrl = self.urlForAttachment(message.attachment)
         htmlLines = [
             "<video controls=\"\">",
-            "<source src=\"" + message.attachment + "\">",
-            "<a href=\"{0}\">{0}</a>".format(message.attachment),
+            "<source src=\"" + attachmentUrl + "\">",
+            "<a href=\"{0}\">{0}</a>".format(attachmentUrl),
             "</video>"
         ]
         return WacbHtmlFormatter.joinLines(htmlLines)
 
     def formatAudioAttachmentMessage(self, message):
+        attachmentUrl = self.urlForAttachment(message.attachment)
         htmlLines = [
             "<audio controls=\"\">",
-            "<source src=\"" + message.attachment + "\">",
-            "<a href=\"{0}\">{0}</a>".format(message.attachment),
+            "<source src=\"" + attachmentUrl + "\">",
+            "<a href=\"{0}\">{0}</a>".format(attachmentUrl),
             "</audio>"
         ]
         return WacbHtmlFormatter.joinLines(htmlLines)
 
     def formatGenericAttachmentMessage(self, message):
+        attachmentUrl = self.urlForAttachment(message.attachment)
         htmlLines = [
-            "<a href=\"{0}\">{0}</a>".format(message.attachment)
+            "<a href=\"{0}\">{0}</a>".format(attachmentUrl)
         ]
         return WacbHtmlFormatter.joinLines(htmlLines)
 
     def formatAttachmentMessage(self, message):
-        attachmentName = message.attachment
-        lastDotPos = attachmentName.rfind(".")
-        attachmentExt = attachmentName[lastDotPos+1:] if lastDotPos != -1 else None
+        attachmentUrl = self.urlForAttachment(message.attachment)
+        lastDotPos = attachmentUrl.rfind(".")
+        attachmentExt = attachmentUrl[lastDotPos+1:] if lastDotPos != -1 else None
         if (attachmentExt in ["jpg", "jpeg", "png", "thumb", "webp"]) and self.inlineImages:
             htmlLines = self.formatImageAttachmentMessage(message)
         elif (attachmentExt in ["mp4", "mov"]) and self.inlineVideo:
@@ -300,7 +308,7 @@ class WacbHtmlFormatter:
             htmlLines = self.formatAudioAttachmentMessage(message)
         else:
             htmlLines = self.formatGenericAttachmentMessage(message)
-        self.linkedAttachments.add(message.attachment)
+        self.linkedAttachments.add(attachmentUrl)
         return htmlLines
 
     def formatUserMessage(self, message):

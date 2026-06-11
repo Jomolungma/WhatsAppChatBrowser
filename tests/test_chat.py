@@ -98,3 +98,14 @@ def test_exportAndImport():
     assert len(wa1) == len(wa2)
     for i in range(len(wa1)):
         assert wa1[i] == wa2[i]
+
+def test_merge():
+    wa1 = makeTestChat()
+    wa2 = wacbchat.WaChat()
+    addMessagesToChat(wa2, [
+        '[01.01.25, 15:48:14] Nobody: Drinnen oder drau\u00dfen?'
+    ])
+    wa = wacbchat.MergedChat([wa1, wa2, wa2])
+    assert len(wa) == len(wa1) + len(wa2)
+    for i in range(2, len(wa)):
+        assert (wa[i].time - wa[i-1].time).total_seconds() >= 0

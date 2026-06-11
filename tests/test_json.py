@@ -14,7 +14,7 @@ class JsonChatWithAttachments(wacbchat.JsonChat):
         return self.hasFile(attachmentName)
 
     def importAttachment(self, attachmentName):
-        return attachmentName
+        return wacbchat.Attachment(self, attachmentName)
 
     def hasFile(self, name):
         return name in self.attachments

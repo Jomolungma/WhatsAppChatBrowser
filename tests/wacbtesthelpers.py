@@ -20,7 +20,7 @@ class ChatWithAttachments(wacbchat.WaChat):
     def openFile(self, name):
         return io.BytesIO(self.attachments[name])
 
-    def copyFile(self, name, outputFile):
+    def copyFile(self, name, outputFile, updatecb=None):
         outputFile.write(self.attachments[name])
 
     def getFileSize(self, name):

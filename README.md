@@ -81,9 +81,9 @@ which can export WhatsApp chat histories from WhatsApp database backups.
 
 Follow its instructions, plus:
 
-- You *must* use the command-line options `-j --per-chat` so that
+- You **must** use the command-line options `-j --per-chat` so that
   separate JSON files are created for each chat.
-- Do *not* use the `--tg`, `--telegram` or `--txt` options.
+- **Do not** use the `--tg`, `--telegram` or `--txt` options.
 - You _may_ use the `--no-html` option.
 
 WhatsApp Chat Exporter then generates per-chat JSON files, which you can
@@ -283,6 +283,7 @@ in the GUI and then exporting them as a chat history of its own.
 # API
 
 Python developers will find a rich, modular API. Use the source.
+A good place to start is the function `wacb.wacbchat.openChat()`.
 
 # Some Gritty Details
 
