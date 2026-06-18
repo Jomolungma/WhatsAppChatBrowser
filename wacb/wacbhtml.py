@@ -38,7 +38,7 @@ class WacbHtmlFormatter:
     cssUrl = "wacb.css"
     lineTerminator = "\n"
     # Matches URLs, _italics_ and *bold* formatting.
-    regexForFmt = re.compile("(?:(_|\\*)([\\w\\s\\.]+)\\1)|(https?://[^\\s]+)")
+    regexForFmt = re.compile("(?:(_|\\*)([^*_]+)\\1)|(https?://[^\\s]+)")
     regexForFileName = re.compile("/?([0-9]{4})-?([0-9]{2})?\\.html")
 
     def __init__(self, messageContainer):
@@ -308,7 +308,7 @@ class WacbHtmlFormatter:
             htmlLines = self.formatAudioAttachmentMessage(message)
         else:
             htmlLines = self.formatGenericAttachmentMessage(message)
-        self.linkedAttachments.add(attachmentUrl)
+        self.linkedAttachments.add(message.attachment)
         return htmlLines
 
     def formatUserMessage(self, message):

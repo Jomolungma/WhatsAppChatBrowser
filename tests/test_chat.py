@@ -1,5 +1,7 @@
 import io
 import locale
+import datetime
+import zipfile
 from wacb import wacbchat
 from .wacbtesthelpers import *
 
@@ -31,6 +33,15 @@ def test_parseMessageWithAttachment():
     wa.addAttachment("PHOTO-2025-01-17-09-48-45.jpg", "Dummy Data")
     addMessagesToChat(wa, [
         '\u200e[17.01.25, 09:48:45] Nobody: \u200e<Anhang: PHOTO-2025-01-17-09-48-45.jpg>'
+    ])
+    assert wa[0].isUserMessage and wa[0].user == "Nobody"
+    assert wa[0].hasAttachment
+
+def test_parseMessageWithAttachmentWithSpace():
+    wa = ChatWithAttachments()
+    wa.addAttachment("Some Attachments Have Space Characters.pdf", "Dummy Data")
+    addMessagesToChat(wa, [
+        '\u200e[17.01.25, 09:48:45] Nobody: \u200e<Anhang: Some Attachments Have Space Characters.pdf>'
     ])
     assert wa[0].isUserMessage and wa[0].user == "Nobody"
     assert wa[0].hasAttachment
@@ -92,9 +103,10 @@ def test_ukLocaleMessage():
 
 def test_exportAndImport():
     wa1 = makeTestChat()
+    assert wa1[4].hasAttachment
     stream = io.BytesIO()
     wa1.exportToZip(stream)
-    wa2 = wacbchat.ZippedChat(stream)
+    wa2 = wacbchat.openChat(stream)
     assert len(wa1) == len(wa2)
     for i in range(len(wa1)):
         assert wa1[i] == wa2[i]
@@ -109,3 +121,43 @@ def test_merge():
     assert len(wa) == len(wa1) + len(wa2)
     for i in range(2, len(wa)):
         assert (wa[i].time - wa[i-1].time).total_seconds() >= 0
+
+def test_filter():
+    wa1 = makeTestChat()
+    wa2 = wacbchat.FilteredByTime(wa1, datetime.date(2025, 1, 9), datetime.date(2025, 1, 9))
+    assert len(wa2) == 1
+
+def test_readFromDirectory(tmp_path):
+    wa1 = makeTestChat()
+    tmpDir = tmp_path / "subdir"
+    tmpDir.mkdir()
+    tmpFile = tmpDir / "_chat.txt"
+    with tmpFile.open("wb") as cFile:
+        wa1.exportMessages(cFile)
+    imgFile = tmpDir / "blob.png"
+    imgFile.write_text("Dummy Data")
+    wa2 = wacbchat.openChat(tmpFile)
+    assert len(wa1) == len(wa2)
+    for i in range(len(wa1)):
+        assert wa1[i] == wa2[i]
+
+def test_readFromZipFile(tmp_path):
+    wa1 = makeTestChat()
+    tmpZip = tmp_path / "zipped_chat.zip"
+    wa1.exportToZip(tmpZip)
+    wa2 = wacbchat.openChat(tmpZip)
+    assert len(wa1) == len(wa2)
+    for i in range(len(wa1)):
+        assert wa1[i] == wa2[i]
+
+def test_readFromSubdirectoryInZip(tmp_path):
+    wa1 = makeTestChat()
+    tmpZip = tmp_path / "zipped_chat.zip"
+    with zipfile.ZipFile(tmpZip, "w") as zFile:
+        with zFile.open("subdir/_chat.txt", "w") as cFile:
+            wa1.exportMessages(cFile)
+        zFile.writestr("subdir/blob.png", "Dummy Data")
+    wa2 = wacbchat.openChat(tmpZip)
+    assert len(wa1) == len(wa2)
+    for i in range(len(wa1)):
+        assert wa1[i] == wa2[i]

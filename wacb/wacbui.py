@@ -870,6 +870,7 @@ class WhatsAppChatBrowser(tkinter.Frame):
     def start(self):
         if not self.loaded:
             return
+        self.updateAppConfigurationFromUi()
         self.statisticsCollector = DownloadStatisticsCollector()
         self.app.setStatisticsCollector(self.statisticsCollector)
         self.app.title = self.title.get() if len(self.title.get()) > 0 else None

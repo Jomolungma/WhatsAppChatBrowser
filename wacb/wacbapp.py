@@ -147,6 +147,7 @@ class HttpHtmlGlue:
         "png":  "image/png",
         "webp": "image/webp",
         "svg":  "image/svg+xml",
+        "ogg":  "audio/ogg",
         "opus": "audio/ogg",
         "mp3":  "audio/mpeg",
         "m4a":  "audio/mp4",
@@ -287,8 +288,8 @@ class App:
                 with zFile.open(url, 'w') as aFile:
                     self.formatter.copyFile(url, aFile)
             for attachment in self.formatter.linkedAttachments:
-                with zFile.open(attachment, 'w') as aFile:
-                    self.chat.copyFile(attachment, aFile)
+                with zFile.open(attachment.name, 'w') as aFile:
+                    attachment.copyFile(aFile)
             for emoji in self.formatter.linkedEmojis:
                 with zFile.open(self.emojifier.url(emoji), 'w') as aFile:
                     aFile.write(emoji.image)
@@ -304,8 +305,8 @@ class App:
             with open(dirPath / url, 'wb') as aFile:
                 self.formatter.copyFile(url, aFile)
         for attachment in self.formatter.linkedAttachments:
-            with open(dirPath / attachment, 'wb') as aFile:
-                self.chat.copyFile(attachment, aFile)
+            with open(dirPath / attachment.name, 'wb') as aFile:
+                attachment.copyFile(aFile)
         if len(self.formatter.linkedEmojis) > 0:
             emojiPath = dirPath / "emoji"
             emojiPath.mkdir()
